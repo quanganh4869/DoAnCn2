@@ -8,6 +8,7 @@ import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/signin_screen.dart';
 import 'package:ecomerceapp/features/view/setting_screen.dart';
 import 'package:ecomerceapp/features/myorders/view/screens/my_order_screen.dart';
+import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_screen.dart';
 
 
 class AccountScreen extends StatelessWidget {
@@ -22,9 +23,11 @@ class AccountScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           "Account settings",
+          
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,
+            
           ),
         ),
         actions: [
@@ -103,7 +106,6 @@ class AccountScreen extends StatelessWidget {
     );
   }
 
-  // ...existing code...
   Widget _buildMenuSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<Map<String, dynamic>> menuItems = [
@@ -154,9 +156,9 @@ class AccountScreen extends StatelessWidget {
                 if (item['title'] == "Logout") {
                   _showLogoutDialog(context);
                 } else if (item['title'] == "My Orders") {
-                  // Navigate to My Orders screen
                   Get.to(() => MyOrderScreen());
                 } else if (item['title'] == "Shipping Addresses") {
+                  Get.to(() => ShippingAddressScreen());
                 } else if (item['title'] == "Payment Methods") {}
               },
             ),
