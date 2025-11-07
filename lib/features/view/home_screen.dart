@@ -10,7 +10,7 @@ import 'package:ecomerceapp/features/view/widgets/product_grid.dart';
 import 'package:ecomerceapp/features/view/widgets/category_chips.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_search_bar.dart';
 import 'package:ecomerceapp/features/view/widgets/all_products_screen.dart';
-import 'package:ecomerceapp/features/view/notification/utils/notification_screen.dart';
+import 'package:ecomerceapp/features/notification/utils/notification_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});

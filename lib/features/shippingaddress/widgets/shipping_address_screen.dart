@@ -31,7 +31,7 @@ class ShippingAddressScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () => _showAddAddressBottomSheet(context),
             icon: Icon(
               Icons.add_circle_outline,
               color: isDark ? Colors.white : Colors.black,
@@ -51,8 +51,8 @@ class ShippingAddressScreen extends StatelessWidget {
     final address = _repository.getAddresses()[index];
     return AddressCard(
       address: address,
-      onDelete: () => _showEditAddressBottomSheet(context, address),
-      onEdit: () => _showDeleteAddressDialog(context),
+      onDelete: () => _showDeleteAddressDialog(context),
+      onEdit: () => _showEditAddressBottomSheet(context, address),
     );
   }
 
@@ -137,20 +137,20 @@ class ShippingAddressScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {
                   Get.back();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child:Text(
-                    "Updated Address ",
-                    style: AppTextStyles.withColor(
-                      AppTextStyles.h3,
-                      Theme.of(context).textTheme.bodyLarge!.color!,
-                    ),
-                  )
+                ),
+                child: Text(
+                  "Updated Address ",
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.h3,
+                    Theme.of(context).textTheme.bodyLarge!.color!,
+                  ),
+                ),
               ),
             ),
           ],
@@ -158,6 +158,7 @@ class ShippingAddressScreen extends StatelessWidget {
       ),
     );
   }
+
   void _showDeleteAddressDialog(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     Get.dialog(
@@ -201,6 +202,96 @@ class ShippingAddressScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddAddressBottomSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Add New Address',
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.h3,
+                    Theme.of(context).textTheme.bodyLarge!.color!,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: Icon(
+                    Icons.close,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buiidTextField(
+              context,
+              'Label (e.g., Home, Office)',
+              Icons.label_outline,
+            ),
+            const SizedBox(height: 16),
+            _buiidTextField(
+              context,
+              'Full Address',
+              Icons.location_on_outlined,
+            ),
+            const SizedBox(height: 16),
+            _buiidTextField(context, 'City', Icons.location_city_outlined),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buiidTextField(context, 'State', Icons.map_outlined),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buiidTextField(
+                    context,
+                    'Zip Code',
+                    Icons.pin_outlined,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back();
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  "Add Address ",
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.h3,
+                    Theme.of(context).textTheme.bodyLarge!.color!,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

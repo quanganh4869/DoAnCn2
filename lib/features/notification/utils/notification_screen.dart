@@ -3,9 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/features/view/notification/utils/notification_utils.dart';
-import 'package:ecomerceapp/features/view/notification/models/notification_type.dart';
-import 'package:ecomerceapp/features/view/notification/repositories/notification_repository.dart';
+import 'package:ecomerceapp/features/notification/utils/notification_utils.dart';
+import 'package:ecomerceapp/features/notification/models/notification_type.dart';
+import 'package:ecomerceapp/features/notification/repositories/notification_repository.dart';
 
 class NotificationScreen extends StatelessWidget {
   final NotificationRepository _repository = NotificationRepository();

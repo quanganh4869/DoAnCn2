@@ -1,4 +1,4 @@
-import 'package:ecomerceapp/features/view/notification/models/notification_type.dart';
+import 'package:ecomerceapp/features/notification/models/notification_type.dart';
 
 class NotificationRepository {
   List<NotificationItem> getNotifications() {

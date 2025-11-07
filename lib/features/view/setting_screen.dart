@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/theme_controller.dart';
+import 'package:ecomerceapp/features/view/privacy_policy.dart';
+import 'package:ecomerceapp/features/view/term_of_service.dart';
 
 class SettingScreen extends StatelessWidget {
   const SettingScreen({super.key});
@@ -31,61 +33,45 @@ class SettingScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSection(
-              context,
-              "Appearance",
-              [
-                _buildThemeToggle(context),
-              ],
-            ),
-            _buildSection(
-              context,
-              "Notifications",
-              [
-                _buildSwitchTile(
-                  context,
-                  "Push Notifications",
-                  "Receive push notifications",
-                  true,
-                ),
-                _buildSwitchTile(
-                  context,
-                  "Email Notifications",
-                  "Receive email notifications",
-                  false,
-                ),
-              ],
-            ),
-            _buildSection(
-              context,
-              "Privacy",
-              [
-                _buildNavigationTile(
-                  context,
-                  "Privacy Policy",
-                  "View our privacy policy",
-                  Icons.privacy_tip_outlined,
-                ),
-                _buildNavigationTile(
-                  context,
-                  "Terms of Service",
-                  "Read our terms of service",
-                  Icons.description_outlined,
-                ),
-              ],
-            ),
-            _buildSection(
-              context,
-              "About",
-              [
-                _buildNavigationTile(
-                  context,
-                  "App Version",
-                  "V3.6",
-                  Icons.info_outline,
-                ),
-              ],
-            ),
+            _buildSection(context, "Appearance", [_buildThemeToggle(context)]),
+            _buildSection(context, "Notifications", [
+              _buildSwitchTile(
+                context,
+                "Push Notifications",
+                "Receive push notifications",
+                true,
+              ),
+              _buildSwitchTile(
+                context,
+                "Email Notifications",
+                "Receive email notifications",
+                false,
+              ),
+            ]),
+            _buildSection(context, "Privacy", [
+              _buildNavigationTile(
+                context,
+                "Privacy Policy",
+                "View our privacy policy",
+                Icons.privacy_tip_outlined,
+                onTap: () => Get.to(() => const PrivacyPolicy()),
+              ),
+              _buildNavigationTile(
+                context,
+                "Terms of Service",
+                "Read our terms of service",
+                Icons.description_outlined,
+                onTap: () => Get.to(() => const TermOfService()),
+              ),
+            ]),
+            _buildSection(context, "About", [
+              _buildNavigationTile(
+                context,
+                "App Version",
+                "V3.6",
+                Icons.info_outline,
+              ),
+            ]),
           ],
         ),
       ),
@@ -93,7 +79,11 @@ class SettingScreen extends StatelessWidget {
   }
 
   // SECTION WRAPPER
-  Widget _buildSection(BuildContext context, String title, List<Widget> children) {
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),
@@ -110,7 +100,7 @@ class SettingScreen extends StatelessWidget {
               ),
             ),
           ),
-          ...children, // hiển thị danh sách con
+          ...children,
         ],
       ),
     );
@@ -161,7 +151,11 @@ class SettingScreen extends StatelessWidget {
 
   // SWITCH TILE
   Widget _buildSwitchTile(
-      BuildContext context, String title, String subtitle, bool initialValue) {
+    BuildContext context,
+    String title,
+    String subtitle,
+    bool initialValue,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -202,9 +196,14 @@ class SettingScreen extends StatelessWidget {
     );
   }
 
-  // NAVIGATION TILE
+  // NAVIGATION TILE (đã fix cú pháp - thêm onTap)
   Widget _buildNavigationTile(
-      BuildContext context, String title, String subtitle, IconData icon) {
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -222,10 +221,7 @@ class SettingScreen extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: Theme.of(context).primaryColor,
-        ),
+        leading: Icon(icon, color: Theme.of(context).primaryColor),
         title: Text(
           title,
           style: AppTextStyles.withColor(
@@ -244,7 +240,7 @@ class SettingScreen extends StatelessWidget {
           Icons.chevron_right,
           color: isDark ? Colors.grey[400] : Colors.grey[600],
         ),
-        onTap: () {},
+        onTap: onTap,
       ),
     );
   }

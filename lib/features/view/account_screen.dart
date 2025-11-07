@@ -7,9 +7,10 @@ import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/signin_screen.dart';
 import 'package:ecomerceapp/features/view/setting_screen.dart';
+import 'package:ecomerceapp/features/view/wishlist_screen.dart';
 import 'package:ecomerceapp/features/myorders/view/screens/my_order_screen.dart';
+import 'package:ecomerceapp/features/edit_profile/views/screens/edit_profile_screen.dart';
 import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_screen.dart';
-
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -23,11 +24,10 @@ class AccountScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           "Account settings",
-          
+
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,
-            
           ),
         ),
         actions: [
@@ -85,7 +85,7 @@ class AccountScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () => Get.to(() => EditProfileScreen()),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               side: BorderSide(color: isDark ? Colors.white70 : Colors.black12),
@@ -111,9 +111,6 @@ class AccountScreen extends StatelessWidget {
     final List<Map<String, dynamic>> menuItems = [
       {"icon": Icons.shopping_bag_outlined, "title": "My Orders"},
       {"icon": Icons.location_on_outlined, "title": "Shipping Addresses"},
-      {"icon": Icons.payment_outlined, "title": "Payment Methods"},
-      {"icon": Icons.favorite_border, "title": "My Wishlist"},
-      {"icon": Icons.help_outline, "title": "Help & Support"},
       {"icon": Icons.logout, "title": "Logout"},
     ];
 
@@ -159,7 +156,7 @@ class AccountScreen extends StatelessWidget {
                   Get.to(() => MyOrderScreen());
                 } else if (item['title'] == "Shipping Addresses") {
                   Get.to(() => ShippingAddressScreen());
-                } else if (item['title'] == "Payment Methods") {}
+                }
               },
             ),
           );
@@ -230,7 +227,8 @@ class AccountScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      final AuthController authController = Get.find<AuthController>();
+                      final AuthController authController =
+                          Get.find<AuthController>();
                       authController.logout();
                       Get.offAll(() => SigninScreen());
                     },
