@@ -1,13 +1,14 @@
 import 'package:get/get.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/features/checkout/screens/checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
-  const CartScreen({super.key});
+  // Giả sử bạn có danh sách cartItems
+  final List<Product> cartItems;
+  const CartScreen({super.key, required this.cartItems});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,7 @@ class CartScreen extends StatelessWidget {
           ),
         ),
         title: Text(
-          "My cart",
+          "My Cart",
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,
@@ -33,12 +34,22 @@ class CartScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: products.length,
-              itemBuilder: (context, index) =>
-                  _buildCartItem(context, products[index]),
-            ),
+            child: cartItems.isEmpty
+                ? Center(
+                    child: Text(
+                      'Your cart is empty',
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.h3,
+                        isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: cartItems.length,
+                    itemBuilder: (context, index) =>
+                        _buildCartItem(context, cartItems[index]),
+                  ),
           ),
           _buildCartSummary(context),
         ],
@@ -69,8 +80,10 @@ class CartScreen extends StatelessWidget {
             borderRadius: const BorderRadius.horizontal(
               left: Radius.circular(16),
             ),
-            child: Image.asset(
-              product.imageUrl,
+            child: Image.network(
+              product.primaryImage.isNotEmpty
+                  ? product.primaryImage
+                  : 'https://via.placeholder.com/100',
               width: 100,
               height: 100,
               fit: BoxFit.cover,
@@ -78,20 +91,22 @@ class CartScreen extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        product.name,
-                        style: AppTextStyles.withColor(
-                          AppTextStyles.h3,
-                          isDark ? Colors.white : Colors.black,
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          style: AppTextStyles.withColor(
+                            AppTextStyles.h3,
+                            isDark ? Colors.white : Colors.black,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       IconButton(
                         icon: Icon(
@@ -129,7 +144,7 @@ class CartScreen extends StatelessWidget {
                               onPressed: () {},
                             ),
                             Text(
-                              '1',
+                              '1', // TODO: dùng state để quản lý số lượng
                               style: AppTextStyles.withColor(
                                 AppTextStyles.h3,
                                 isDark ? Colors.white : Colors.black,
@@ -157,7 +172,6 @@ class CartScreen extends StatelessWidget {
   }
 
   void _showDeleteConfirmationDialog(BuildContext context, Product product) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -169,13 +183,12 @@ class CartScreen extends StatelessWidget {
           actions: [
             TextButton(
               child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
               child: const Text('Remove'),
               onPressed: () {
+                // TODO: xóa item khỏi cartItems
                 Navigator.of(context).pop();
               },
             ),
@@ -185,9 +198,11 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // ...existing code...
   Widget _buildCartSummary(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final totalPrice = cartItems.fold<double>(
+        0, (sum, item) => sum + item.price); // tính tổng đơn giản
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -216,7 +231,7 @@ class CartScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '\$199.99',
+                '\$${totalPrice.toStringAsFixed(2)}',
                 style: AppTextStyles.withColor(
                   AppTextStyles.h2,
                   isDark ? Colors.white : Colors.black,

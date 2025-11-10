@@ -1,0 +1,213 @@
+import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:ecomerceapp/models/product.dart';
+import 'package:ecomerceapp/supabase/product_supabase_services.dart';
+
+class ProductController extends GetxController {
+  // Danh sách sản phẩm
+  final RxList<Product> _allProducts = <Product>[].obs;
+  final RxList<Product> _filteredProducts = <Product>[].obs;
+  final RxList<Product> _featuredProducts = <Product>[].obs;
+  final RxList<Product> _saleProducts = <Product>[].obs;
+  final RxList<String> _categories = <String>[].obs;
+
+  // Trạng thái
+  final RxBool _isLoading = false.obs;
+  final RxBool _hasError = false.obs;
+  final RxString _errorMessage = "".obs;
+  final RxString _selectedCategory = "".obs;
+  final RxString _searchQuery = "".obs;
+
+  // Getters
+  List<Product> get allProducts => _allProducts;
+  List<Product> get filteredProducts => _filteredProducts;
+  List<Product> get featuredProducts => _featuredProducts;
+  List<Product> get saleProducts => _saleProducts;
+  List<String> get categories => _categories;
+  bool get isLoading => _isLoading.value;
+  bool get hasError => _hasError.value;
+  String get errorMessage => _errorMessage.value;
+  String get selectedCategory => _selectedCategory.value;
+  String get searchQuery => _searchQuery.value;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _selectedCategory.value = "All";
+    loadProducts();
+  }
+
+  /// Load toàn bộ sản phẩm
+  Future<void> loadProducts() async {
+    _isLoading.value = true;
+    _hasError.value = false;
+
+    try {
+      final products = await ProductSupabaseServices.getAllProducts();
+
+      _allProducts.value = products;
+      _filteredProducts.value = products;
+
+      await _loadFeaturedProducts();
+      await _loadSaleProducts();
+      await _loadCategories();
+    } catch (e) {
+      _hasError.value = true;
+      _errorMessage.value = "Failed to load products. Please try again.";
+      print("Error loading products: $e");
+
+      _allProducts.clear();
+      _filteredProducts.clear();
+    } finally {
+      _isLoading.value = false;
+    }
+  }
+
+  /// Load sản phẩm nổi bật
+  Future<void> _loadFeaturedProducts() async {
+    try {
+      final products = await ProductSupabaseServices.getFeaturedProducts();
+      _featuredProducts.value = products;
+    } catch (e) {
+      print("Error loading featured products: $e");
+    }
+  }
+
+  /// Load sản phẩm đang giảm giá
+  Future<void> _loadSaleProducts() async {
+    try {
+      final products = await ProductSupabaseServices.getSaleProducts();
+      _saleProducts.value = products;
+    } catch (e) {
+      print("Error loading sale products: $e");
+    }
+  }
+
+  /// Load danh mục sản phẩm
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await ProductSupabaseServices.getAllCategories();
+      _categories.value = categories;
+    } catch (e) {
+      print("Error loading categories: $e");
+    }
+  }
+
+  void filterByCategory(String category) {
+    _selectedCategory.value = category;
+    _applyFilter();
+    update();
+  }
+
+  void searchProducts(String query) {
+    _searchQuery.value = query;
+    _applyFilter();
+    update();
+  }
+
+  void resetFilters() {
+    _selectedCategory.value = "All";
+    _searchQuery.value = "";
+    _filteredProducts.value = _allProducts;
+    _applyFilter();
+    update();
+  }
+
+  void clearSearch() {
+    _searchQuery.value = "";
+    _applyFilter();
+    update();
+  }
+
+  void _applyFilter() {
+    List<Product> filtered = List.from(_allProducts);
+
+    if (_selectedCategory.value != "All" &&
+        _selectedCategory.value.isNotEmpty) {
+      final selectedCat = _selectedCategory.value.toLowerCase();
+      filtered = filtered.where((product) {
+        final productCat = product.category.toLowerCase();
+        if (selectedCat == "home & living" || selectedCat == "home") {
+          return productCat == "home" || productCat == "home & living";
+        }
+        if (selectedCat == "sports & fitness" || selectedCat == "sports") {
+          return productCat == "sports" || productCat == "sports & fitness";
+        }
+        return productCat == selectedCat ||
+            productCat.contains(selectedCat) ||
+            selectedCat.contains(productCat);
+      }).toList();
+
+      print("Filtering by category: ${_selectedCategory.value}");
+      print("Found ${filtered.length} products in category");
+      print(
+          "Available categories in products: ${_allProducts.map((p) => p.category).toSet()}");
+    } else {
+      print("Showing all products: ${_allProducts.length}");
+    }
+
+    if (_searchQuery.value.isNotEmpty) {
+      final query = _searchQuery.value.toLowerCase();
+      filtered = filtered.where((product) =>
+          product.name.toLowerCase().contains(query) ||
+          product.category.toLowerCase().contains(query) ||
+          product.description.toLowerCase().contains(query) ||
+          (product.brand?.toLowerCase().contains(query) ?? false)).toList();
+    }
+
+    _filteredProducts.value = filtered;
+    print("Total filtered products: ${_filteredProducts.length}");
+  }
+
+  // Tìm kiếm sản phẩm theo danh mục
+  Future<List<Product>> getProductsByCategory(String category) async {
+    try {
+      return await ProductSupabaseServices.getProductsByCategory(category);
+    } catch (e) {
+      print("Error getting products by category: $e");
+      return [];
+    }
+  }
+
+  // Tìm sản phẩm trong Supabase
+  Future<List<Product>> searchProductsInSupaBase(String searchTerm) async {
+    try {
+      return await ProductSupabaseServices.searchProducts(searchTerm);
+    } catch (e) {
+      print("Error searching products in Supabase: $e");
+      return [];
+    }
+  }
+
+  // Lấy sản phẩm theo id
+  Future<Product?> getProductById(String productID) async {
+    try {
+      return await ProductSupabaseServices.getProductById(productID);
+    } catch (e) {
+      print("Error getting product by ID: $e");
+      return null;
+    }
+  }
+
+  // Load lại sản phẩm
+  Future<void> refreshProduct() async {
+    await loadProducts();
+    update();
+  }
+
+  // Xóa lọc sản phẩm
+  void clearFilters() {
+    _selectedCategory.value = "All";
+    _searchQuery.value = "";
+    _filteredProducts.value = _allProducts;
+  }
+
+  // Lấy sản phẩm để hiển thị
+  List<Product> getDisplayProducts() {
+    if (_selectedCategory.value == "All") {
+      return _allProducts;
+    }
+    return _filteredProducts;
+  }
+}

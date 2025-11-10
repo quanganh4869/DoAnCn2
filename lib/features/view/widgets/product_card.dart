@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:flutter/material.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -37,10 +37,33 @@ class ProductCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(12),
                   ),
-                  child: Image.asset(
-                    product.imageUrl,
+                  child: Image.network(
+                    product.images.isNotEmpty ? product.images[0] : '',
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, StackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 30,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -48,16 +71,7 @@ class ProductCard extends StatelessWidget {
                 right: 8,
                 top: 8,
                 child: IconButton(
-                  icon: Icon(
-                    product.isFavourite
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: product.isFavourite
-                        ? Theme.of(context).primaryColor
-                        : isDark
-                        ? Colors.grey[400]
-                        : Colors.grey,
-                  ),
+                  icon: Icon(Icons.favorite_border, color: Colors.grey),
                   onPressed: () {},
                 ),
               ),
@@ -76,8 +90,14 @@ class ProductCard extends StatelessWidget {
                     ),
                     child: Text(
                       "${calculateDiscount(product.price, product.oldPrice!)}% OFF",
-                      style: AppTextStyles.withColor(AppTextStyles.withWeight(AppTextStyles.bodySmall, FontWeight.bold),Colors.white),
-                    )              
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.withWeight(
+                          AppTextStyles.bodySmall,
+                          FontWeight.bold,
+                        ),
+                        Colors.white,
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -116,18 +136,16 @@ class ProductCard extends StatelessWidget {
                         Theme.of(context).textTheme.bodyLarge!.color!,
                       ),
                     ),
-                    if(product.oldPrice != null) ...[
-                      SizedBox(width: screenWidth*0.01),
+                    if (product.oldPrice != null) ...[
+                      SizedBox(width: screenWidth * 0.01),
                       Text(
                         '${product.oldPrice!.toStringAsFixed(3)} \VND',
-                      style: AppTextStyles.withColor(
+                        style: AppTextStyles.withColor(
                           AppTextStyles.bodySmall,
                           isDark ? Colors.grey[400]! : Colors.grey[600]!,
-                        ).copyWith(
-                          decoration: TextDecoration.lineThrough,
+                        ).copyWith(decoration: TextDecoration.lineThrough),
                       ),
-                      )
-                    ]
+                    ],
                   ],
                 ),
               ],
@@ -137,7 +155,8 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
-  int calculateDiscount(double currentPrice, double oldPrice){
-    return(((oldPrice - currentPrice) / oldPrice)*100).round();
+
+  int calculateDiscount(double currentPrice, double oldPrice) {
+    return (((oldPrice - currentPrice) / oldPrice) * 100).round();
   }
 }

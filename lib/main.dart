@@ -1,15 +1,33 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_themes.dart';
+import 'package:ecomerceapp/supabase/connect.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ecomerceapp/utils/supabase_data_seeder.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/splash_screen.dart';
 import 'package:ecomerceapp/controller/theme_controller.dart';
+import 'package:ecomerceapp/controller/product_controller.dart';
 import 'package:ecomerceapp/controller/navigation_controller.dart';
 
-void main() async {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load biến môi trường từ file .env
+  await dotenv.load(fileName: ".env");
+
+  // Khởi tạo Supabase qua service
+  await SupabaseService().init();
+
+  // Khởi tạo các controller với GetX
   Get.put(ThemeController());
   Get.put(AuthController());
   Get.put(NavigationController());
+  Get.put(ProductController());
+
+  // (Tùy chọn) Nạp dữ liệu mẫu
+  await SupabaseDataSeeder.seedAllData();
+
   runApp(const MyApp());
 }
 
@@ -20,7 +38,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeController themeController = Get.find<ThemeController>();
     return GetMaterialApp(
-      title: 'Ecomerce App',
+      title: 'Ecommerce App',
       theme: AppThemes.light,
       darkTheme: AppThemes.dark,
       themeMode: themeController.theme,

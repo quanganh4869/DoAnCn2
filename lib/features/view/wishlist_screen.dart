@@ -1,14 +1,20 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class WishlistScreen extends StatelessWidget {
-  const WishlistScreen({super.key});
+  final List<Product> products;
+
+  const WishlistScreen({super.key, required this.products});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Lọc sản phẩm yêu thích
+    final favoriteProducts = products.where((p) => p.isFavourite).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -29,23 +35,18 @@ class WishlistScreen extends StatelessWidget {
           ),
         ],
       ),
-      // ...existing code...
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _buildSummarySection(context)),
+          SliverToBoxAdapter(child: _buildSummarySection(context, favoriteProducts)),
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) => _buildWishlistItem(
                   context,
-                  products
-                      .where((product) => product.isFavourite)
-                      .toList()[index],
+                  favoriteProducts[index],
                 ),
-                childCount: products
-                    .where((product) => product.isFavourite)
-                    .length,
+                childCount: favoriteProducts.length,
               ),
             ),
           ),
@@ -54,11 +55,8 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummarySection(BuildContext context) {
+  Widget _buildSummarySection(BuildContext context, List<Product> favoriteProducts) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final favoriteProducts = products
-        .where((product) => product.isFavourite)
-        .length;
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -72,7 +70,7 @@ class WishlistScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "$favoriteProducts Items",
+                "${favoriteProducts.length} Items",
                 style: AppTextStyles.withColor(
                   AppTextStyles.h2,
                   Theme.of(context).textTheme.bodyLarge!.color!,
@@ -136,8 +134,10 @@ class WishlistScreen extends StatelessWidget {
             borderRadius: const BorderRadius.horizontal(
               left: Radius.circular(12),
             ),
-            child: Image.asset(
-              product.imageUrl,
+            child: Image.network(
+              product.primaryImage.isNotEmpty
+                  ? product.primaryImage
+                  : 'https://via.placeholder.com/120', // fallback
               width: 120,
               height: 120,
               fit: BoxFit.cover,
@@ -174,7 +174,7 @@ class WishlistScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${product.price.toStringAsFixed(3)} VND',
+                        '${product.price.toStringAsFixed(2)} VND',
                         style: AppTextStyles.withColor(
                           AppTextStyles.withWeight(
                             AppTextStyles.bodyLarge,

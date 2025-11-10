@@ -49,13 +49,14 @@ class HomeScreen extends StatelessWidget {
                   ),
                   Spacer(),
                   IconButton(
-                    onPressed: () =>Get.to(()=> NotificationScreen()),
+                    onPressed: () => Get.to(() => NotificationScreen()),
                     icon: Icon(Icons.notification_add_outlined),
                   ),
                   IconButton(
-                    onPressed: () => Get.to(()=> CartScreen()),
+                    onPressed: () => Get.to(() => CartScreen(cartItems: [])),
                     icon: Icon(Icons.shopping_bag_outlined),
                   ),
+
                   GetBuilder<ThemeController>(
                     builder: (controller) => IconButton(
                       onPressed: () => controller.toggleTheme(),
@@ -88,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const Expanded(child:ProductGrid()) ,
+            const Expanded(child: ProductGrid()),
           ],
         ),
       ),

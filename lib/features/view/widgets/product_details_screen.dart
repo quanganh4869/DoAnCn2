@@ -6,17 +6,17 @@ import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
 
-
 class ProductDetailsScreen extends StatelessWidget {
-  final Product product;
+  final Product product; 
   const ProductDetailsScreen({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final screenHeight = screenSize.height;
-    final screemWidth = screenSize.width;
+    final screenWidth = screenSize.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -52,13 +52,17 @@ class ProductDetailsScreen extends StatelessWidget {
               children: [
                 AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.asset(
-                    product.imageUrl,
+                  child: Image.network(
+                    product.primaryImage.isNotEmpty
+                        ? product.primaryImage
+                        : 'https://via.placeholder.com/400', 
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
                 ),
                 Positioned(
+                  top: 8,
+                  right: 8,
                   child: IconButton(
                     onPressed: () {},
                     icon: Icon(
@@ -74,7 +78,7 @@ class ProductDetailsScreen extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: EdgeInsets.all(screemWidth * 0.04),
+              padding: EdgeInsets.all(screenWidth * 0.04),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -140,7 +144,7 @@ class ProductDetailsScreen extends StatelessWidget {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(screemWidth * 0.04),
+          padding: EdgeInsets.all(screenWidth * 0.04),
           child: Row(
             children: [
               Expanded(
@@ -163,7 +167,7 @@ class ProductDetailsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: screenHeight * 0.04),
+              SizedBox(width: screenWidth * 0.04),
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {},
