@@ -8,26 +8,21 @@ import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/splash_screen.dart';
 import 'package:ecomerceapp/controller/theme_controller.dart';
 import 'package:ecomerceapp/controller/product_controller.dart';
+import 'package:ecomerceapp/controller/category_controller.dart';
 import 'package:ecomerceapp/controller/navigation_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load biến môi trường từ file .env
   await dotenv.load(fileName: ".env");
-
-  // Khởi tạo Supabase qua service
   await SupabaseService().init();
 
-  // Khởi tạo các controller với GetX
   Get.put(ThemeController());
   Get.put(AuthController());
   Get.put(NavigationController());
   Get.put(ProductController());
+  Get.put(CategoryController());
 
-  // (Tùy chọn) Nạp dữ liệu mẫu
   await SupabaseDataSeeder.seedAllData();
-
   runApp(const MyApp());
 }
 

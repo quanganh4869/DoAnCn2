@@ -1,15 +1,18 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 
 class ProductCard extends StatelessWidget {
-  final Product product;
+  final Products product;
   const ProductCard({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
+
     return Container(
       constraints: BoxConstraints(maxWidth: screenWidth * 0.9),
       decoration: BoxDecoration(
@@ -127,7 +130,7 @@ class ProductCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${product.price.toStringAsFixed(3)} \VND',
+                      "${priceFormatter.format(product.price)} VND",
                       style: AppTextStyles.withColor(
                         AppTextStyles.withWeight(
                           AppTextStyles.bodyLarge,
@@ -139,7 +142,7 @@ class ProductCard extends StatelessWidget {
                     if (product.oldPrice != null) ...[
                       SizedBox(width: screenWidth * 0.01),
                       Text(
-                        '${product.oldPrice!.toStringAsFixed(3)} \VND',
+                        "${priceFormatter.format(product.price)} VND",
                         style: AppTextStyles.withColor(
                           AppTextStyles.bodySmall,
                           isDark ? Colors.grey[400]! : Colors.grey[600]!,

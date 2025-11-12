@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:intl/intl.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -6,16 +7,22 @@ import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
 
-class ProductDetailsScreen extends StatelessWidget {
-  final Product product; 
+class ProductDetailsScreen extends StatefulWidget {
+  final Products product;
   const ProductDetailsScreen({super.key, required this.product});
 
+  @override
+  State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
+}
+
+class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final screenHeight = screenSize.height;
     final screenWidth = screenSize.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
 
     return Scaffold(
       appBar: AppBar(
@@ -28,15 +35,18 @@ class ProductDetailsScreen extends StatelessWidget {
         ),
         title: Text(
           "Details",
-          style: AppTextStyles.withColor(
-            AppTextStyles.h3,
-            isDark ? Colors.white : Colors.black,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         actions: [
           IconButton(
-            onPressed: () =>
-                _shareProduct(context, product.name, product.description),
+            onPressed: () => _shareProduct(
+              context,
+              widget.product.name,
+              widget.product.description,
+            ),
             icon: Icon(
               Icons.share,
               color: isDark ? Colors.white : Colors.black,
@@ -53,11 +63,34 @@ class ProductDetailsScreen extends StatelessWidget {
                 AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Image.network(
-                    product.primaryImage.isNotEmpty
-                        ? product.primaryImage
-                        : 'https://via.placeholder.com/400', 
+                    widget.product.primaryImage.isNotEmpty
+                        ? widget.product.primaryImage
+                        : 'https://via.placeholder.com/400',
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Positioned(
@@ -66,10 +99,10 @@ class ProductDetailsScreen extends StatelessWidget {
                   child: IconButton(
                     onPressed: () {},
                     icon: Icon(
-                      product.isFavourite
+                      widget.product.isFavourite
                           ? Icons.favorite
                           : Icons.favorite_border,
-                      color: product.isFavourite
+                      color: widget.product.isFavourite
                           ? Theme.of(context).primaryColor
                           : (isDark ? Colors.white : Colors.black),
                     ),
@@ -83,44 +116,145 @@ class ProductDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
-                          product.name,
+                          widget.product.name,
                           style: AppTextStyles.withColor(
-                            AppTextStyles.h2,
+                            AppTextStyles.h1,
                             Theme.of(context).textTheme.headlineMedium!.color!,
                           ),
                         ),
                       ),
-                      Text(
-                        "\$${product.price.toStringAsFixed(2)}",
-                        style: AppTextStyles.withColor(
-                          AppTextStyles.h2,
-                          Theme.of(context).textTheme.headlineMedium!.color!,
-                        ),
+                      SizedBox(width: screenWidth * 0.02),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            "${priceFormatter.format(widget.product.price)} VND",
+                            style: AppTextStyles.withColor(
+                              AppTextStyles.h2,
+                              Theme.of(
+                                context,
+                              ).textTheme.headlineMedium!.color!,
+                            ).copyWith(fontWeight: FontWeight.bold),
+                          ),
+
+                          if (widget.product.oldPrice != null &&
+                              widget.product.oldPrice! >
+                                  widget.product.price) ...[
+                            SizedBox(height: screenHeight * 0.005),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "${priceFormatter.format(widget.product.oldPrice)} VND",
+                                  style:
+                                      AppTextStyles.withColor(
+                                        AppTextStyles.bodySmall,
+                                        isDark
+                                            ? Colors.grey[400]!
+                                            : Colors.grey[600]!,
+                                      ).copyWith(
+                                        decoration: TextDecoration.lineThrough,
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "${((widget.product.oldPrice! - widget.product.price) / widget.product.oldPrice! * 100).round()}% OFF",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
-                  Text(
-                    product.category,
-                    style: AppTextStyles.withColor(
-                      AppTextStyles.bodyMedium,
-                      isDark ? Colors.grey[400]! : Colors.grey[600]!,
-                    ),
+
+                  SizedBox(height: screenHeight * 0.01),
+                  // Dòng hiển thị Category và Brand
+                  Row(
+                    children: [
+                      Text(
+                        widget.product.category,
+                        style: AppTextStyles.withColor(
+                          AppTextStyles.bodyMedium,
+                          isDark ? Colors.grey[400]! : Colors.grey[600]!,
+                        ),
+                      ),
+                      if (widget.product.brand != null) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.product.brand!,
+                          style: AppTextStyles.withColor(
+                            AppTextStyles.bodyMedium,
+                            isDark ? Colors.grey[400]! : Colors.grey[600]!,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+
+                  // Hiển thị trạng thái kho hàng
+                  if (widget.product.stock <= 5 && widget.product.stock > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "Only ${widget.product.stock} left in stock",
+                        style: AppTextStyles.withColor(
+                          AppTextStyles.bodySmall,
+                          Colors.orange,
+                        ),
+                      ),
+                    )
+                  else if (widget.product.stock == 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "Out of stock",
+                        style: AppTextStyles.withColor(
+                          AppTextStyles.bodySmall,
+                          Colors.red,
+                        ),
+                      ),
+                    ),
+
                   SizedBox(height: screenHeight * 0.02),
-                  Text(
-                    "Select size",
-                    style: AppTextStyles.withColor(
-                      AppTextStyles.labelMedium,
-                      Theme.of(context).textTheme.bodyLarge!.color!,
+                  // Size Selector
+                  if (_getAvailableSizes().isNotEmpty) ...[
+                    Text(
+                      "Select Size",
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.labelMedium,
+                        Theme.of(context).textTheme.bodyLarge!.color!,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: screenHeight * 0.01),
-                  const SizeSelector(),
-                  SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: screenHeight * 0.01),
+                    SizeSelector(
+                      sizes: _getAvailableSizes(),
+                      onSizeSelected: (size) {},
+                    ),
+                  ],
+
+                  SizedBox(height: screenHeight * 0.02),
+                  // Description
                   Text(
                     "Description",
                     style: AppTextStyles.withColor(
@@ -130,9 +264,9 @@ class ProductDetailsScreen extends StatelessWidget {
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   Text(
-                    product.description,
+                    widget.product.description,
                     style: AppTextStyles.withColor(
-                      AppTextStyles.h2,
+                      AppTextStyles.bodyLarge,
                       Theme.of(context).textTheme.headlineSmall!.color!,
                     ),
                   ),
@@ -142,6 +276,7 @@ class ProductDetailsScreen extends StatelessWidget {
           ],
         ),
       ),
+      // Navigation Bar
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(screenWidth * 0.04),
@@ -159,7 +294,7 @@ class ProductDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    "Add to cart",
+                    "Add to Cart",
                     style: AppTextStyles.withColor(
                       AppTextStyles.buttonMedium,
                       Theme.of(context).textTheme.bodyLarge!.color!,
@@ -193,13 +328,23 @@ class ProductDetailsScreen extends StatelessWidget {
     );
   }
 
+  // Các hàm hỗ trợ (Giữ nguyên)
+  List<String> _getAvailableSizes() {
+    if (widget.product.specification.containsKey("sizes")) {
+      final sizes = widget.product.specification["sizes"];
+      if (sizes is List) {
+        return List<String>.from(sizes);
+      }
+    }
+    return [];
+  }
+
   Future<void> _shareProduct(
     BuildContext context,
     String productName,
     String description,
   ) async {
     final box = context.findRenderObject() as RenderBox?;
-
     const String shopLink = "";
     final String shareMessage = "$description\n\nShop now at $shopLink";
 

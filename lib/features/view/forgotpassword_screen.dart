@@ -1,12 +1,15 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/features/view/otp_verification_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
 
 class ForgotpasswordScreen extends StatelessWidget {
   ForgotpasswordScreen({super.key});
+
   final TextEditingController _emailController = TextEditingController();
+  final AuthController _authController = Get.find<AuthController>();
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +65,32 @@ class ForgotpasswordScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    showSuccessDialog(context);
+                  onPressed: () async {
+                    final email = _emailController.text.trim();
+                    if (email.isEmpty || !GetUtils.isEmail(email)) {
+                      Get.snackbar(
+                        "Invalid Email",
+                        "Please enter a valid email address",
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.redAccent,
+                        colorText: Colors.white,
+                      );
+                      return;
+                    }
+
+                    // try {
+                    //   await _authController.resetPassword(email);
+                    //   showSuccessDialog(context);
+                    //   Get.to(() => OtpVerificationScreen(email: email));
+                    // } catch (e) {
+                    //   Get.snackbar(
+                    //     "Reset Failed",
+                    //     e.toString(),
+                    //     snackPosition: SnackPosition.BOTTOM,
+                    //     backgroundColor: Colors.redAccent,
+                    //     colorText: Colors.white,
+                    //   );
+                    // }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
@@ -93,7 +120,7 @@ class ForgotpasswordScreen extends StatelessWidget {
       AlertDialog(
         title: Text("Check your email", style: AppTextStyles.h3),
         content: Text(
-          "We have sent password recovery instructions to your email.",
+          "We have sent OTP to your email.",
           style: AppTextStyles.bodyMedium,
         ),
         actions: [

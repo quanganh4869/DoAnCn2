@@ -2,63 +2,132 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabase = Supabase.instance.client; 
 const String _productsTable = 'products'; 
+const String _categoriesTable = 'categories';
 
 class SupabaseDataSeeder {
 
-  /// Chức năng: Chạy tất cả các hàm seed dữ liệu
   static Future<void> seedAllData() async {
     print('Starting Supabase data seeding...');
+    await seedCategories(); 
     await seedProducts();
     print('Supabase data seeding complete. 🎉');
   }
 
-  /// Chức năng: Thêm dữ liệu sản phẩm mẫu vào bảng 'products' trong Supabase
+  static Future<void> seedCategories() async {
+    final List<Map<String, dynamic>> sampleCategories = [
+      {
+        'name': 'Electronics',
+        'displayName': 'Electronics',
+        'description': 'Devices, gadgets, and electronic items',
+        'iconUrl': 'https://example.com/icons/electronics.png',
+        'imageUrl': 'https://example.com/images/electronics.jpg',
+        'is_active': true,
+        'sortOrder': 1,
+        'subcategories': ['Laptops', 'Phones', 'Accessories'],
+        'metadata': {'department': 'Tech'},
+      },
+      {
+        'name': 'Footwear',
+        'displayName': 'Footwear',
+        'description': 'Shoes, sneakers, boots, and sandals',
+        'iconUrl': 'https://example.com/icons/footwear.png',
+        'imageUrl': 'https://example.com/images/footwear.jpg',
+        'is_active': true,
+        'sortOrder': 2,
+        'subcategories': ['Running Shoes', 'Casual Shoes'],
+        'metadata': {},
+      },
+      {
+        'name': 'Clothing',
+        'displayName': 'Clothing',
+        'description': 'Apparel, fashion, and garments',
+        'iconUrl': 'https://example.com/icons/clothing.png',
+        'imageUrl': 'https://example.com/images/clothing.jpg',
+        'is_active': true,
+        'sortOrder': 3,
+        'subcategories': ['T-Shirts', 'Jeans', 'Jackets'],
+        'metadata': {},
+      },
+      {
+        'name': 'Accessories',
+        'displayName': 'Accessories',
+        'description': 'Bags, watches, jewelry, and other accessories',
+        'iconUrl': 'https://example.com/icons/accessories.png',
+        'imageUrl': 'https://example.com/images/accessories.jpg',
+        'is_active': true,
+        'sortOrder': 4,
+        'subcategories': ['Bags', 'Watches', 'Jewelry'],
+        'metadata': {},
+      },
+      {
+        'name': 'Sports',
+        'displayName': 'Sports',
+        'description': 'Sports equipment and activewear',
+        'iconUrl': 'https://example.com/icons/sports.png',
+        'imageUrl': 'https://example.com/images/sports.jpg',
+        'is_active': true,
+        'sortOrder': 5,
+        'subcategories': ['Gym', 'Outdoor', 'Team Sports'],
+        'metadata': {},
+      },
+    ];
+
+    try {
+      final response = await supabase
+          .from(_categoriesTable)
+          .insert(sampleCategories)
+          .select();
+
+      if (response != null && response.isNotEmpty) {
+        print('Successfully seeded ${sampleCategories.length} categories to Supabase.');
+      } else {
+        print(' Supabase insertion of categories returned empty.');
+      }
+    } on PostgrestException catch (e) {
+      print('Supabase Error seeding categories: ${e.message}');
+    } catch (e) {
+      print(' General Error seeding categories: $e');
+    }
+  }
+
   static Future<void> seedProducts() async {
-    // Dữ liệu mẫu phải sử dụng snake_case (primary_image, is_active, v.v.)
-    // và không sử dụng FieldValue.serverTimestamp() vì Supabase/PostgreSQL 
-    // tự động quản lý các trường timestamp (created_at, updated_at).
     final List<Map<String, dynamic>> sampleProducts = [
       {
-        // ------------------ SẢN PHẨM 1: Nike Air Max 270 ------------------
         'name': 'Nike Air Max 270',
-        'description': 'Comfortable running shoes with excellent cushioning and modern design. Perfect for daily wear and light exercise.',
+        'description': 'Comfortable running shoes with excellent cushioning.',
         'category': 'Footwear',
-        'subcategory': 'Running Shoes', // Dựa trên ảnh trước
+        'subcategory': 'Running Shoes', 
         'price': 129.99,
-        'old_price': 179.99, // snake_case
+        'old_price': 179.99,
         'currency': 'USD',
-        'images': ['https://example.com/shoe_1.jpg', 'https://example.com/shoe_2.jpg'], 
-        'primary_image': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz50rIHINcVvWcnB6YJ1Ig2nO3rymRPhF1AQ&s', // snake_case
+        'images': ['https://example.com/shoe_1.jpg'],
+        'primary_image': 'https://example.com/shoe_1.jpg',
         'brand': 'Nike',
         'sku': 'NIKE-AM270-001',
         'stock': 25,
-        'is_active': true, // snake_case
-        'is_featured': true, // snake_case
-        'is_on_sale': true, // snake_case
+        'is_active': true,
+        'is_featured': true,
+        'is_on_sale': true,
         'rating': 4.5,
-        'review_count': 89, // snake_case
+        'review_count': 89,
         'tags': ['popular', 'trending', 'comfortable'], 
-        'specification': { // JSONB type in Supabase
+        'specification': {
           'color': 'White/Blue',
           'material': 'Synthetic',
-          'weight': '0.8kg',
           'sizes': ['7', '8', '9', '10', '11']
         },
-        'search_keywords': [ // snake_case
-          'nike', 'air', 'max', '270', 'shoes', 'running', 'footwear', 'white', 'blue'
-        ],
-        'is_favourite': false, // Thêm trường isFavourite từ Model
+        'search_keywords': ['nike', 'air', 'max', '270', 'shoes'],
+        'is_favourite': false,
       },
       {
-        // ------------------ SẢN PHẨM 2: MacBook Pro 13" ------------------
         'name': 'MacBook Pro 13"',
-        'description': 'High-performance laptop with M2 chip, perfect for professionals and creative work. Features stunning Retina display.',
+        'description': 'High-performance laptop with M2 chip.',
         'category': 'Electronics',
-        'subcategory': 'Laptops', // Hoàn thiện dữ liệu
+        'subcategory': 'Laptops',
         'price': 1299.00,
         'old_price': 1499.00,
         'currency': 'USD',
-        'images': ['https://example.com/macbook_1.jpg', 'https://example.com/macbook_2.jpg'], 
+        'images': ['https://example.com/macbook_1.jpg'],
         'primary_image': 'https://example.com/macbook_1.jpg',
         'brand': 'Apple',
         'sku': 'MBP13-M2-256',
@@ -68,44 +137,32 @@ class SupabaseDataSeeder {
         'is_on_sale': false,
         'rating': 4.9,
         'review_count': 210,
-        'tags': ['premium', 'laptop', 'apple', 'm2'], 
+        'tags': ['premium', 'laptop', 'apple'], 
         'specification': {
           'chip': 'Apple M2',
           'ram': '8GB',
           'storage': '256GB SSD',
-          'display': '13.3-inch Retina',
         },
-        'search_keywords': [
-          'macbook', 'pro', 'apple', 'm2', 'laptop', 'electronics'
-        ],
-        'is_favourite': false, 
-      }
-      // Bạn có thể thêm nhiều sản phẩm mẫu khác ở đây
+        'search_keywords': ['macbook', 'pro', 'apple', 'm2'],
+        'is_favourite': false,
+      },
     ];
 
     try {
-      if (sampleProducts.isEmpty) {
-        print('No sample products to seed.');
-        return;
-      }
-      
-      // Chèn tất cả dữ liệu mẫu vào bảng 'products'
       final response = await supabase
           .from(_productsTable)
           .insert(sampleProducts)
-          .select(); // Dùng .select() để trả về dữ liệu đã chèn
+          .select();
 
       if (response != null && response.isNotEmpty) {
-        print('✅ Successfully seeded ${sampleProducts.length} products to Supabase.');
+        print(' Successfully seeded ${sampleProducts.length} products to Supabase.');
       } else {
-        print('⚠️ Supabase insertion resulted in an empty return, check database constraints.');
+        print(' Supabase insertion of products returned empty.');
       }
-
     } on PostgrestException catch (e) {
-      print('❌ Supabase Error seeding products: ${e.message}');
-      print('Details: ${e.details}');
+      print(' Supabase Error seeding products: ${e.message}');
     } catch (e) {
-      print('❌ General Error seeding products: $e');
+      print(' General Error seeding products: $e');
     }
   }
 }

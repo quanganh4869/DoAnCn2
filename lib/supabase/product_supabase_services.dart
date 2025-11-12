@@ -6,7 +6,7 @@ class ProductSupabaseServices {
   static const String _productTable = "products";
 
   ///  Lấy toàn bộ sản phẩm đang active (is_active = true)
-  static Future<List<Product>> getAllProducts() async {
+  static Future<List<Products>> getAllProducts() async {
     try {
       final response = await _supabase
           .from(_productTable)
@@ -15,7 +15,14 @@ class ProductSupabaseServices {
           .order('created_at', ascending: false);
 
       final List<dynamic> data = response;
-      return data.map((item) => Product.fromSupabaseJson(item)).toList();
+      return data
+          .map(
+            (item) => Products.fromSupabaseJson(
+              Map<String, dynamic>.from(item),
+              item['id'].toString(),
+            ),
+          )
+          .toList();
     } catch (e) {
       print("Error fetching products: $e");
       return [];
@@ -23,7 +30,7 @@ class ProductSupabaseServices {
   }
 
   ///  Lấy sản phẩm theo ID
-  static Future<Product?> getProductById(String productId) async {
+  static Future<Products?> getProductById(String productId) async {
     try {
       final response = await _supabase
           .from(_productTable)
@@ -32,7 +39,11 @@ class ProductSupabaseServices {
           .maybeSingle();
 
       if (response == null) return null;
-      return Product.fromSupabaseJson(response);
+
+      return Products.fromSupabaseJson(
+        Map<String, dynamic>.from(response),
+        response['id'].toString(),
+      );
     } catch (e) {
       print("Error fetching product by ID: $e");
       return null;
@@ -40,18 +51,26 @@ class ProductSupabaseServices {
   }
 
   ///  Stream realtime sản phẩm (Supabase Realtime)
-  static Stream<List<Product>> getProductsStream() {
+  static Stream<List<Products>> getProductsStream() {
     return _supabase
         .from(_productTable)
         .stream(primaryKey: ['id'])
         .eq('is_active', true)
         .order('created_at')
-        .map((events) =>
-            events.map((item) => Product.fromSupabaseJson(item)).toList());
+        .map(
+          (events) => events
+              .map(
+                (item) => Products.fromSupabaseJson(
+                  Map<String, dynamic>.from(item),
+                  item['id'].toString(),
+                ),
+              )
+              .toList(),
+        );
   }
 
   ///  Lấy sản phẩm trong khoảng giá
-  static Future<List<Product>> getProductsByPriceRange({
+  static Future<List<Products>> getProductsByPriceRange({
     required double minPrice,
     required double maxPrice,
   }) async {
@@ -65,7 +84,14 @@ class ProductSupabaseServices {
           .order('price', ascending: true);
 
       final List<dynamic> data = response;
-      return data.map((item) => Product.fromSupabaseJson(item)).toList();
+      return data
+          .map(
+            (item) => Products.fromSupabaseJson(
+              Map<String, dynamic>.from(item),
+              item['id'].toString(),
+            ),
+          )
+          .toList();
     } catch (e) {
       print('Error fetching products by price range: $e');
       return [];
@@ -97,7 +123,7 @@ class ProductSupabaseServices {
   }
 
   ///  Lấy sản phẩm theo danh mục
-  static Future<List<Product>> getProductsByCategory(String category) async {
+  static Future<List<Products>> getProductsByCategory(String category) async {
     try {
       final response = await _supabase
           .from(_productTable)
@@ -107,7 +133,14 @@ class ProductSupabaseServices {
           .order('created_at', ascending: false);
 
       final List<dynamic> data = response;
-      return data.map((item) => Product.fromSupabaseJson(item)).toList();
+      return data
+          .map(
+            (item) => Products.fromSupabaseJson(
+              Map<String, dynamic>.from(item),
+              item['id'].toString(),
+            ),
+          )
+          .toList();
     } catch (e) {
       print('Error fetching products by category: $e');
       return [];
@@ -115,7 +148,7 @@ class ProductSupabaseServices {
   }
 
   ///  Lấy sản phẩm nổi bật (is_featured = true)
-  static Future<List<Product>> getFeaturedProducts() async {
+  static Future<List<Products>> getFeaturedProducts() async {
     try {
       final response = await _supabase
           .from(_productTable)
@@ -126,7 +159,14 @@ class ProductSupabaseServices {
           .limit(10);
 
       final List<dynamic> data = response;
-      return data.map((item) => Product.fromSupabaseJson(item)).toList();
+      return data
+          .map(
+            (item) => Products.fromSupabaseJson(
+              Map<String, dynamic>.from(item),
+              item['id'].toString(),
+            ),
+          )
+          .toList();
     } catch (e) {
       print('Error fetching featured products: $e');
       return [];
@@ -134,7 +174,7 @@ class ProductSupabaseServices {
   }
 
   ///  Lấy sản phẩm đang giảm giá (is_on_sale = true)
-  static Future<List<Product>> getSaleProducts() async {
+  static Future<List<Products>> getSaleProducts() async {
     try {
       final response = await _supabase
           .from(_productTable)
@@ -144,7 +184,14 @@ class ProductSupabaseServices {
           .order('created_at', ascending: false);
 
       final List<dynamic> data = response;
-      return data.map((item) => Product.fromSupabaseJson(item)).toList();
+      return data
+          .map(
+            (item) => Products.fromSupabaseJson(
+              Map<String, dynamic>.from(item),
+              item['id'].toString(),
+            ),
+          )
+          .toList();
     } catch (e) {
       print('Error fetching sale products: $e');
       return [];
@@ -152,7 +199,7 @@ class ProductSupabaseServices {
   }
 
   ///  Tìm kiếm sản phẩm theo tên hoặc từ khóa
-  static Future<List<Product>> searchProducts(String searchTerm) async {
+  static Future<List<Products>> searchProducts(String searchTerm) async {
     try {
       final response = await _supabase
           .from(_productTable)
@@ -161,7 +208,14 @@ class ProductSupabaseServices {
           .eq('is_active', true);
 
       final List<dynamic> data = response;
-      return data.map((item) => Product.fromSupabaseJson(item)).toList();
+      return data
+          .map(
+            (item) => Products.fromSupabaseJson(
+              Map<String, dynamic>.from(item),
+              item['id'].toString(),
+            ),
+          )
+          .toList();
     } catch (e) {
       print('Error searching products: $e');
       return [];

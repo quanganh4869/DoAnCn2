@@ -1,5 +1,6 @@
 
-class Product {
+class Products {
+  final String id;
   final String name;
   final String category;
   final double price;
@@ -22,7 +23,8 @@ class Product {
   final DateTime? createdAt;
   final DateTime? updatedAt; 
 
-  const Product({
+   Products({
+    required this.id,
     required this.name,
     required this.category,
     required this.price,
@@ -46,14 +48,13 @@ class Product {
     this.updatedAt,
   });
 
-  factory Product.fromSupabaseJson(Map<String, dynamic> data) {
-   
-
-    return Product(
+  factory Products.fromSupabaseJson(Map<String, dynamic> data, String id) {
+    return Products(
+      id: id,
       name: data['name'] ?? '',
       category: data['category'] ?? '',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
-      oldPrice: (data['oldPrice'] as num?)?.toDouble(),
+      oldPrice: (data['old_price'] as num?)?.toDouble(),
       currency: data['currency'] ?? "VND",
       images: List<String>.from(data['images'] ?? []), 
       primaryImage: data['primary_image'] ?? (data['images']?.isNotEmpty == true ? data['images'][0] : ""),
@@ -99,5 +100,13 @@ class Product {
       
     };
   }
-  // final List<products> products =[];
+  String get imageUrl => primaryImage;
+  bool get hasDiscount => oldPrice != null && oldPrice! > price;
+  int get discountPercentage{
+    if(!hasDiscount)return 0;
+    return(((oldPrice! - price) / oldPrice!) * 100).round();
+  }
+  bool get isInstock => stock > 0;
+  String? get formattedOldPrice => oldPrice != null ? "\$${oldPrice!.toStringAsFixed(3)}":null;
+  final List<Products> products =[];
 }

@@ -7,7 +7,7 @@ import 'package:ecomerceapp/features/checkout/screens/checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   // Giả sử bạn có danh sách cartItems
-  final List<Product> cartItems;
+  final List<Products> cartItems;
   const CartScreen({super.key, required this.cartItems});
 
   @override
@@ -57,7 +57,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(BuildContext context, Product product) {
+  Widget _buildCartItem(BuildContext context, Products product) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
@@ -171,7 +171,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmationDialog(BuildContext context, Product product) {
+  void _showDeleteConfirmationDialog(BuildContext context, Products product) {
     showDialog(
       context: context,
       builder: (BuildContext context) {

@@ -14,7 +14,7 @@ class SupabaseService {
     final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
 
     if (supabaseUrl == null || supabaseAnonKey == null) {
-      throw Exception('❌ Missing Supabase credentials in .env file');
+      throw Exception('Missing Supabase credentials in .env file');
     }
 
     await Supabase.initialize(

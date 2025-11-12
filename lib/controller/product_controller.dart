@@ -1,15 +1,13 @@
 import 'package:get/get.dart';
-import 'package:flutter/foundation.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/supabase/product_supabase_services.dart';
 
 class ProductController extends GetxController {
   // Danh sách sản phẩm
-  final RxList<Product> _allProducts = <Product>[].obs;
-  final RxList<Product> _filteredProducts = <Product>[].obs;
-  final RxList<Product> _featuredProducts = <Product>[].obs;
-  final RxList<Product> _saleProducts = <Product>[].obs;
+  final RxList<Products> _allProducts = <Products>[].obs;
+  final RxList<Products> _filteredProducts = <Products>[].obs;
+  final RxList<Products> _featuredProducts = <Products>[].obs;
+  final RxList<Products> _saleProducts = <Products>[].obs;
   final RxList<String> _categories = <String>[].obs;
 
   // Trạng thái
@@ -20,10 +18,10 @@ class ProductController extends GetxController {
   final RxString _searchQuery = "".obs;
 
   // Getters
-  List<Product> get allProducts => _allProducts;
-  List<Product> get filteredProducts => _filteredProducts;
-  List<Product> get featuredProducts => _featuredProducts;
-  List<Product> get saleProducts => _saleProducts;
+  List<Products> get allProducts => _allProducts;
+  List<Products> get filteredProducts => _filteredProducts;
+  List<Products> get featuredProducts => _featuredProducts;
+  List<Products> get saleProducts => _saleProducts;
   List<String> get categories => _categories;
   bool get isLoading => _isLoading.value;
   bool get hasError => _hasError.value;
@@ -121,7 +119,7 @@ class ProductController extends GetxController {
   }
 
   void _applyFilter() {
-    List<Product> filtered = List.from(_allProducts);
+    List<Products> filtered = List.from(_allProducts);
 
     if (_selectedCategory.value != "All" &&
         _selectedCategory.value.isNotEmpty) {
@@ -142,18 +140,23 @@ class ProductController extends GetxController {
       print("Filtering by category: ${_selectedCategory.value}");
       print("Found ${filtered.length} products in category");
       print(
-          "Available categories in products: ${_allProducts.map((p) => p.category).toSet()}");
+        "Available categories in products: ${_allProducts.map((p) => p.category).toSet()}",
+      );
     } else {
       print("Showing all products: ${_allProducts.length}");
     }
 
     if (_searchQuery.value.isNotEmpty) {
       final query = _searchQuery.value.toLowerCase();
-      filtered = filtered.where((product) =>
-          product.name.toLowerCase().contains(query) ||
-          product.category.toLowerCase().contains(query) ||
-          product.description.toLowerCase().contains(query) ||
-          (product.brand?.toLowerCase().contains(query) ?? false)).toList();
+      filtered = filtered
+          .where(
+            (product) =>
+                product.name.toLowerCase().contains(query) ||
+                product.category.toLowerCase().contains(query) ||
+                product.description.toLowerCase().contains(query) ||
+                (product.brand?.toLowerCase().contains(query) ?? false),
+          )
+          .toList();
     }
 
     _filteredProducts.value = filtered;
@@ -161,7 +164,7 @@ class ProductController extends GetxController {
   }
 
   // Tìm kiếm sản phẩm theo danh mục
-  Future<List<Product>> getProductsByCategory(String category) async {
+  Future<List<Products>> getProductsByCategory(String category) async {
     try {
       return await ProductSupabaseServices.getProductsByCategory(category);
     } catch (e) {
@@ -171,7 +174,7 @@ class ProductController extends GetxController {
   }
 
   // Tìm sản phẩm trong Supabase
-  Future<List<Product>> searchProductsInSupaBase(String searchTerm) async {
+  Future<List<Products>> searchProductsInSupaBase(String searchTerm) async {
     try {
       return await ProductSupabaseServices.searchProducts(searchTerm);
     } catch (e) {
@@ -181,7 +184,7 @@ class ProductController extends GetxController {
   }
 
   // Lấy sản phẩm theo id
-  Future<Product?> getProductById(String productID) async {
+  Future<Products?> getProductById(String productID) async {
     try {
       return await ProductSupabaseServices.getProductById(productID);
     } catch (e) {
@@ -204,8 +207,8 @@ class ProductController extends GetxController {
   }
 
   // Lấy sản phẩm để hiển thị
-  List<Product> getDisplayProducts() {
-    if (_selectedCategory.value == "All") {
+  List<Products> getDisplayProducts() {
+    if (_selectedCategory.value == "All" || _selectedCategory.value.isEmpty) {
       return _allProducts;
     }
     return _filteredProducts;

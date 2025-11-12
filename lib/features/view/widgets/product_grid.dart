@@ -46,10 +46,8 @@ class ProductGrid extends StatelessWidget {
           );
         }
 
-        // Lấy danh sách sản phẩm hiển thị
         final displayProducts = controller.getDisplayProducts();
 
-        // Trường hợp không có sản phẩm
         if (displayProducts.isEmpty) {
           return Center(
             child: Column(
@@ -78,7 +76,6 @@ class ProductGrid extends StatelessWidget {
           );
         }
 
-        // Hiển thị lưới sản phẩm
         return GridView.builder(
           padding: const EdgeInsets.all(16),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

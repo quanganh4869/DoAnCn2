@@ -11,17 +11,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+ 
   google_fonts: ^6.3.2
   cupertino_icons: ^1.0.8
 
   get: ^4.7.2
   get_storage: ^2.1.1
-
+  path: ^1.8.3
   share_plus: ^12.0.0
   supabase_flutter: ^2.10.3
   flutter_dotenv: ^6.0.0
   lottie: ^3.3.2
+  collection: ^1.18.0
+  intl: ^0.18.1
+  image_picker: ^1.2.0
 
 dev_dependencies:
   flutter_test:

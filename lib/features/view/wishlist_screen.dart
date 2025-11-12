@@ -5,7 +5,7 @@ import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 
 class WishlistScreen extends StatelessWidget {
-  final List<Product> products;
+  final List<Products> products;
 
   const WishlistScreen({super.key, required this.products});
 
@@ -55,7 +55,7 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummarySection(BuildContext context, List<Product> favoriteProducts) {
+  Widget _buildSummarySection(BuildContext context, List<Products> favoriteProducts) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -111,7 +111,7 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWishlistItem(BuildContext context, Product product) {
+  Widget _buildWishlistItem(BuildContext context, Products product) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),

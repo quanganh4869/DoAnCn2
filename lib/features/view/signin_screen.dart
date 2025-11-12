@@ -1,17 +1,40 @@
-import 'package:ecomerceapp/controller/auth_controller.dart';
-import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/features/view/forgotpassword_screen.dart';
-import 'package:ecomerceapp/features/view/signup_screen.dart';
-import 'package:ecomerceapp/features/view/main_screen.dart';
-import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/utils.dart';
+import 'package:flutter/material.dart';
+import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:ecomerceapp/features/view/main_screen.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/features/view/signup_screen.dart';
+import 'package:ecomerceapp/features/view/forgotpassword_screen.dart';
+import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
 
 class SigninScreen extends StatelessWidget {
   SigninScreen({super.key});
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  void _handleSignin(BuildContext context) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final authController = Get.find<AuthController>();
+
+    if (email.isEmpty || password.isEmpty) {
+      Get.snackbar("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (!GetUtils.isEmail(email)) {
+      Get.snackbar("Error", "Invalid email format");
+      return;
+    }
+
+    // Gọi login qua Supabase Auth
+    await authController.login(email, password);
+    final success = await authController.login(email, password);
+    if (success) {
+      Get.offAll(() => const MainScreen());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +43,7 @@ class SigninScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -46,15 +69,6 @@ class SigninScreen extends StatelessWidget {
                 prefixIcon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 controller: _emailController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter your email";
-                  }
-                  if (!GetUtils.isEmail(value)) {
-                    return "Please enter a valid email";
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 40),
               CustomTextfield(
@@ -63,31 +77,25 @@ class SigninScreen extends StatelessWidget {
                 keyboardType: TextInputType.visiblePassword,
                 isPassword: true,
                 controller: _passwordController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter your password";
-                  }
-                  return null;
-                },
               ),
               Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Get.to(() => ForgotpasswordScreen()),
-                      child: Text(
-                        "Fotgot password?",
-                        style: AppTextStyles.withColor(
-                          AppTextStyles.buttonMedium,
-                          Theme.of(context).primaryColor,
-                        ),
-                      ),
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Get.to(() => ForgotpasswordScreen()),
+                  child: Text(
+                    "Forgot password?",
+                    style: AppTextStyles.withColor(
+                      AppTextStyles.buttonMedium,
+                      Theme.of(context).primaryColor,
                     ),
                   ),
+                ),
+              ),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _handleSignin,
+                  onPressed: () => _handleSignin(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -109,14 +117,14 @@ class SigninScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Dont have an account?",
+                    "Don’t have an account?",
                     style: AppTextStyles.withColor(
                       AppTextStyles.bodyMedium,
                       isDark ? Colors.grey[400]! : Colors.grey[600]!,
                     ),
                   ),
                   TextButton(
-                    onPressed: () => Get.to(() =>  SignUpScreen()),
+                    onPressed: () => Get.to(() => SignUpScreen()),
                     child: Text(
                       "Sign Up",
                       style: AppTextStyles.withColor(
@@ -133,10 +141,4 @@ class SigninScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-void _handleSignin() {
-  final AuthController authController = Get.find<AuthController>();
-  authController.login();
-  Get.offAll(() => const MainScreen());
 }
