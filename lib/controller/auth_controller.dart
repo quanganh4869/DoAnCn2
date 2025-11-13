@@ -91,7 +91,11 @@ class AuthController extends GetxController {
 
       await _supabase.storage
           .from('avatars')
-          .upload(storagePath, imageFile, fileOptions: const FileOptions(upsert: true));
+          .upload(
+            storagePath,
+            imageFile,
+            fileOptions: const FileOptions(upsert: true),
+          );
 
       return _supabase.storage.from('avatars').getPublicUrl(storagePath);
     } catch (e) {
@@ -110,7 +114,10 @@ class AuthController extends GetxController {
     File? avatarFile,
   }) async {
     try {
-      final authResp = await _supabase.auth.signUp(email: email, password: password);
+      final authResp = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
       User? user = authResp.user ?? _supabase.auth.currentUser;
       if (user == null) {
         Get.snackbar("Signup Error", "Không tạo được user.");
@@ -163,7 +170,11 @@ class AuthController extends GetxController {
         _storage.write('isLoggedIn', true);
 
         // Load user info
-        final data = await _supabase.from('users').select().eq('id', user.id).maybeSingle();
+        final data = await _supabase
+            .from('users')
+            .select()
+            .eq('id', user.id)
+            .maybeSingle();
         if (data != null) {
           userName.value = data['full_name'] ?? "User";
           userAvatar.value = data['user_image'] ?? defaultAvatar;
@@ -172,7 +183,10 @@ class AuthController extends GetxController {
         Get.snackbar("Welcome", "Login successful!");
         return true;
       } else {
-        Get.snackbar("Login failed", "Invalid credentials or unconfirmed email.");
+        Get.snackbar(
+          "Login failed",
+          "Invalid credentials or unconfirmed email.",
+        );
         return false;
       }
     } catch (e) {
@@ -188,11 +202,93 @@ class AuthController extends GetxController {
         email,
         redirectTo: 'http://localhost:64001/#/ForgotpasswordScreen',
       );
-      Get.snackbar("Success", "Password reset link sent to $email",
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
+      Get.snackbar(
+        "Success",
+        "Password reset link sent to $email",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
     } catch (e) {
-      Get.snackbar("Reset Error", e.toString(),
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.redAccent, colorText: Colors.white);
+      Get.snackbar(
+        "Reset Error",
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Supabse xác thực OTP
+  Future<bool> verifyOtp(String email, String otp) async {
+    try {
+      final response = await _supabase.auth.verifyOTP(
+        email: email,
+        token: otp,
+        type: OtpType.email,
+      );
+
+      if (response.user != null) {
+        Get.snackbar("Success", "OTP verified successfully!");
+        return true;
+      } else {
+        Get.snackbar("Invalid OTP", "Please check your OTP and try again");
+        return false;
+      }
+    } on AuthException catch (e) {
+      Get.snackbar("OTP Error", e.message);
+      return false;
+    } catch (e) {
+      Get.snackbar("Error", "Unexpected error: ${e.toString()}");
+      return false;
+    }
+  }
+
+  /// Change password (sau khi xác minh OTP thành công)
+  Future<bool> updatePassword(String newPassword) async {
+    try {
+      final response = await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      if (response.user != null) {
+        Get.snackbar(
+          "Success",
+          "Password updated successfully!",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        return true;
+      } else {
+        Get.snackbar(
+          "Error",
+          "Failed to update password.",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    } on AuthException catch (e) {
+      Get.snackbar(
+        "Auth Error",
+        e.message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return false;
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Unexpected error: ${e.toString()}",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return false;
     }
   }
 

@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:get/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/features/view/main_screen.dart';
@@ -9,36 +8,40 @@ import 'package:ecomerceapp/features/view/forgotpassword_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
 
 class SigninScreen extends StatelessWidget {
-  SigninScreen({super.key});
+  final String? email; 
+  SigninScreen({super.key, this.email});
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _handleSignin(BuildContext context) async {
+  // Hàm xử lý đăng nhập
+  Future<void> _handleSignin(BuildContext context) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    final authController = Get.find<AuthController>();
 
     if (email.isEmpty || password.isEmpty) {
       Get.snackbar("Error", "Please fill in all fields");
       return;
     }
 
-    if (!GetUtils.isEmail(email)) {
-      Get.snackbar("Error", "Invalid email format");
-      return;
-    }
-
-    // Gọi login qua Supabase Auth
-    await authController.login(email, password);
+    final authController = Get.find<AuthController>();
     final success = await authController.login(email, password);
+
     if (success) {
       Get.offAll(() => const MainScreen());
+    } else {
+      Get.snackbar("Login Failed", "Invalid email or password");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Nếu có email được truyền từ reset_password thì gán vào ô nhập sẵn
+    if (email != null && email!.isNotEmpty) {
+      _emailController.text = email!;
+    }
 
     return Scaffold(
       body: SafeArea(

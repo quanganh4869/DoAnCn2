@@ -13,7 +13,7 @@ import 'package:ecomerceapp/features/edit_profile/views/screens/edit_profile_scr
 import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_screen.dart';
 
 class AccountScreen extends StatelessWidget {
-  const AccountScreen({super.key});
+  const AccountScreen({super.key });
 
   @override
   Widget build(BuildContext context) {

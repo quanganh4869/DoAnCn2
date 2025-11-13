@@ -78,19 +78,19 @@ class ForgotpasswordScreen extends StatelessWidget {
                       return;
                     }
 
-                    // try {
-                    //   await _authController.resetPassword(email);
-                    //   showSuccessDialog(context);
-                    //   Get.to(() => OtpVerificationScreen(email: email));
-                    // } catch (e) {
-                    //   Get.snackbar(
-                    //     "Reset Failed",
-                    //     e.toString(),
-                    //     snackPosition: SnackPosition.BOTTOM,
-                    //     backgroundColor: Colors.redAccent,
-                    //     colorText: Colors.white,
-                    //   );
-                    // }
+                    try {
+                      await _authController.resetPassword(email);
+                      showSuccessDialog(context);
+                      Get.to(() => OtpVerificationScreen(email: email));
+                    } catch (e) {
+                      Get.snackbar(
+                        "Reset Failed",
+                        e.toString(),
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.redAccent,
+                        colorText: Colors.white,
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
