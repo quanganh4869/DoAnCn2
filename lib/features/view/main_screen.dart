@@ -27,7 +27,7 @@ class MainScreen extends StatelessWidget {
               children: [
                 HomeScreen(),
                 ShoppingScreen(),
-                WishlistScreen(products: [],),
+                WishlistScreen(),
                 AccountScreen(),
               ],
             )

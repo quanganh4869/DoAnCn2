@@ -6,7 +6,6 @@ class WishlistSupabaseService {
   static final SupabaseClient _supabase = Supabase.instance.client;
   static const String _wishlistTable = "wishlist";
 
-  // 🔹 Add product to wishlist
   static Future<bool> addToWishlist({
     required String userId,
     required Products product,
@@ -16,153 +15,168 @@ class WishlistSupabaseService {
       final existingItem = await getWishlistItem(userId, product.id);
       if (existingItem != null) return true;
 
-      final wishlistItem = Wishlist(
-        id: '',
-        userId: userId,
-        productId: product.id,
-        product: product,
-        addedAt: DateTime.now(),
-        metadata: metadata ?? {},
-      );
-
       await _supabase.from(_wishlistTable).insert({
-        "userId": wishlistItem.userId,
-        "productId": wishlistItem.productId,
-        "product": {"id": wishlistItem.product.id},
-        "addedAt": wishlistItem.addedAt.toIso8601String(),
-        "metadata": wishlistItem.metadata,
+        "user_id": userId,
+        "product_id": product.id,
+        "product": product.toJson(), // <-- FULL JSON (FIX)
+        "added_at": DateTime.now().toIso8601String(),
+        "metadata": metadata ?? {},
       });
 
-      print(" Added to wishlist: ${product.name}");
+      print("Added to wishlist: ${product.name}");
       return true;
     } catch (e) {
-      print(" addToWishlist error: $e");
+      print("addToWishlist error: $e");
       return false;
     }
   }
-
-  // 🔹 Get specific wishlist item
-  static Future<Wishlist?> getWishlistItem(String userId, String productId) async {
+  static Future<WishlistItem?> getWishlistItem(
+    String userId,
+    String productId,
+  ) async {
     try {
-      final data = await _supabase
+      final rows = await _supabase
           .from(_wishlistTable)
-          .select()
-          .eq("userId", userId)
-          .eq("productId", productId)
-          .maybeSingle() as Map<String, dynamic>?;
+          .select("""
+            *,
+            product:products(*)
+          """)
+          .eq("user_id", userId)
+          .eq("product_id", productId);
 
-      if (data == null) return null;
-      return Wishlist.fromSupabaseJson(data, data["id"].toString());
+      if (rows.isEmpty) return null;
+
+      final data = Map<String, dynamic>.from(rows.first);
+
+      data["product_id"] = data["product_id"].toString();
+
+      // thêm dữ liệu product JOIN vào json
+      data["product"] = rows.first["product"];
+
+      return WishlistItem.fromSupabaseJson(data, data["id"].toString());
     } catch (e) {
-      print(" getWishlistItem error: $e");
+      print("getWishlistItem error: $e");
       return null;
     }
   }
 
-  // 🔹 Remove product from wishlist
-  static Future<bool> removeFromWishlist(String userId, String productId) async {
+
+  static Future<List<WishlistItem>> getUserWishlistItemCount(
+    String userId,
+  ) async {
     try {
-      final deletedItems = await _supabase
+      final rows = await _supabase
+          .from(_wishlistTable)
+          .select("""
+            *,
+            product:products(*)
+          """)
+          .eq("user_id", userId)
+          .order("added_at", ascending: false);
+
+      final wishlist = rows.map((row) {
+        final data = Map<String, dynamic>.from(row);
+
+        data["product_id"] = data["product_id"].toString();
+        data["product"] = row["product"];
+
+        return WishlistItem.fromSupabaseJson(data, data["id"].toString());
+      }).toList();
+
+      print("getUserWishlist: ${wishlist.length} items");
+      return wishlist;
+    } catch (e) {
+      print("getUserWishlist error: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> removeFromWishlist(
+    String userId,
+    String productId,
+  ) async {
+    try {
+      final deletedRows = await _supabase
           .from(_wishlistTable)
           .delete()
-          .eq("userId", userId)
-          .eq("productId", productId) as List<dynamic>?;
+          .eq("user_id", userId)
+          .eq("product_id", productId.toString())
+          .select();
 
-      print("Removed $deletedItems item(s) from wishlist");
-      return (deletedItems?.isNotEmpty ?? false);
+      final removedCount = (deletedRows as List).length;
+
+      print("Removed $removedCount item(s) from wishlist");
+
+      return removedCount > 0;
     } catch (e) {
       print("removeFromWishlist error: $e");
       return false;
     }
   }
 
-  // 🔹 Get all wishlist items for a user
-  static Future<List<Wishlist>> getUserWishlist(String userId) async {
-    try {
-      final dataList = await _supabase
-          .from(_wishlistTable)
-          .select()
-          .eq("userId", userId)
-          .order("addedAt", ascending: false) as List<dynamic>?;
+  static Stream<List<WishlistItem>> getUserWishListItemsStream(String userId) {
+    return _supabase
+        .from("$_wishlistTable:user_id=eq.$userId")
+        .stream(primaryKey: ["id"]).map((rows) {
+      final wishlist = (rows as List).map((row) {
+        final data = Map<String, dynamic>.from(row);
 
-      if (dataList == null) return [];
+        data["product_id"] = data["product_id"].toString();
+        return WishlistItem.fromSupabaseJson(data, data["id"].toString());
+      }).toList();
 
-      final wishlist = dataList
-          .map((data) => Wishlist.fromSupabaseJson(Map<String, dynamic>.from(data), data["id"].toString()))
-          .toList();
+      print("Wishlist update: ${wishlist.length} items");
 
-      print("getUserWishlist: ${wishlist.length} items");
       return wishlist;
-    } catch (e) {
-      print(" getUserWishlist error: $e");
-      return [];
-    }
+    });
   }
 
-  // 🔹 Listen to wishlist changes in realtime
-  static Stream<List<Wishlist>> listenToUserWishlist(String userId) {
+  static Future<bool> isProductInWishList(
+    String userId,
+    String productId,
+  ) async {
     try {
-      return _supabase
-          .from("$_wishlistTable:userId=eq.$userId")
-          .stream(primaryKey: ["id"])
-          .map((rows) {
-        final wishlist = (rows as List)
-            .map((data) => Wishlist.fromSupabaseJson(Map<String, dynamic>.from(data), data["id"].toString()))
-            .toList();
-
-        print("Wishlist update: ${wishlist.length} items");
-        return wishlist;
-      });
-    } catch (e) {
-      print("listenToUserWishlist error: $e");
-      return const Stream.empty();
-    }
-  }
-
-  // 🔹 Check if a product is in wishlist
-  static Future<bool> isInWishlist(String userId, String productId) async {
-    try {
-      final data = await _supabase
+      final rows = await _supabase
           .from(_wishlistTable)
-          .select()
-          .eq("userId", userId)
-          .eq("productId", productId)
-          .maybeSingle() as Map<String, dynamic>?;
+          .select("product_id")
+          .eq("user_id", userId)
+          .eq("product_id", productId.toString()) as List;
 
-      return data != null;
+      return rows.isNotEmpty;
     } catch (e) {
       print("isInWishlist error: $e");
       return false;
     }
   }
 
-  // 🔹 Clear entire wishlist
   static Future<bool> clearUserWishlist(String userId) async {
     try {
-      final deletedItems = await _supabase.from(_wishlistTable).delete().eq("userId", userId) as List<dynamic>?;
-      print(" Cleared wishlist: ${deletedItems?.length ?? 0} items");
+      final deletedItems =
+          await _supabase.from(_wishlistTable).delete().eq("user_id", userId)
+              as List<dynamic>?;
+
+      print("Cleared wishlist: ${deletedItems?.length ?? 0} items");
       return true;
     } catch (e) {
-      print(" clearUserWishlist error: $e");
+      print("clearUserWishlist error: $e");
       return false;
     }
   }
 
-  // 🔹 Toggle wishlist item (add/remove)
   static Future<bool> toggleWishlist(String userId, Products product) async {
     try {
-      final exists = await isInWishlist(userId, product.id);
+      final exists = await isProductInWishList(userId, product.id);
       if (exists) {
         await removeFromWishlist(userId, product.id);
-        print(" Removed from wishlist: ${product.name}");
-        return false; // Removed
+        print("Removed from wishlist: ${product.name}");
+        return false;
       } else {
         await addToWishlist(userId: userId, product: product);
-        print(" Added to wishlist: ${product.name}");
-        return true; // Added
+        print("Added to wishlist: ${product.name}");
+        return true;
       }
     } catch (e) {
-      print(" toggleWishlist error: $e");
+      print("toggleWishlist error: $e");
       return false;
     }
   }

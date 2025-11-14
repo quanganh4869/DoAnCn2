@@ -14,6 +14,7 @@ class AuthController extends GetxController {
 
   bool get isFirstime => _isFirstime.value;
   bool get isLoggedIn => _isLoggedIn.value;
+  User? get currentUser => _supabase.auth.currentUser;
 
   // User info
   var userName = "".obs;
@@ -198,10 +199,7 @@ class AuthController extends GetxController {
   /// Reset password
   Future<void> resetPassword(String email) async {
     try {
-      await _supabase.auth.resetPasswordForEmail(
-        email,
-        redirectTo: 'http://localhost:64001/#/ForgotpasswordScreen',
-      );
+      await _supabase.auth.resetPasswordForEmail(email);
       Get.snackbar(
         "Success",
         "Password reset link sent to $email",

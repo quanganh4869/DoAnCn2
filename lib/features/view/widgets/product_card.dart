@@ -1,7 +1,10 @@
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
+import 'package:ecomerceapp/models/wishlist.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:ecomerceapp/controller/wishlist_controller.dart';
 
 class ProductCard extends StatelessWidget {
   final Products product;
@@ -73,11 +76,31 @@ class ProductCard extends StatelessWidget {
               Positioned(
                 right: 8,
                 top: 8,
-                child: IconButton(
-                  icon: Icon(Icons.favorite_border, color: Colors.grey),
-                  onPressed: () {},
+                child: GetBuilder<WishlistController>(
+                  id: "wishlist_${product.id}",
+                  builder: (controller) {
+                    final isInWishlist = controller.isProductInWishList(
+                      product.id,
+                    );
+
+                    return IconButton(
+                      icon: Icon(
+                        isInWishlist ? Icons.favorite : Icons.favorite_border,
+                        color: isInWishlist
+                            ? Theme.of(context).primaryColor
+                            : isDark
+                            ? Colors.grey[400]
+                            : Colors.grey,
+                      ),
+                      onPressed: () async {
+                        await controller.toggleWishlist(product);
+                        controller.update(["wishlist_${product.id}"]);
+                      },
+                    );
+                  },
                 ),
               ),
+
               if (product.oldPrice != null)
                 Positioned(
                   left: 8,

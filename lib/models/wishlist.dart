@@ -1,5 +1,6 @@
 import 'package:ecomerceapp/models/product.dart';
-class Wishlist {
+
+class WishlistItem {
   final String id;
   final String userId;
   final String productId;
@@ -7,7 +8,7 @@ class Wishlist {
   final DateTime addedAt;
   final Map<String, dynamic> metadata;
 
-  const Wishlist({
+  const WishlistItem({
     required this.id,
     required this.userId,
     required this.productId,
@@ -16,28 +17,28 @@ class Wishlist {
     this.metadata = const {},
   });
 
-  factory Wishlist.fromSupabaseJson(Map<String, dynamic> data, String id) {
-    return Wishlist(
-      id: id,
-      userId: data["userId"] ?? "",
-      productId: data["productId"] ?? "",
-      product: Products.fromSupabaseJson(
-        Map<String, dynamic>.from(data["product"] ?? {}),
-        data["productId"] ?? ""
-      ),
-      addedAt: DateTime.tryParse(data["addedAt"] ?? "") ?? DateTime.now(),
-      metadata: Map<String, dynamic>.from(data["metadata"] ?? {}),
-    );
-  }
-
   Map<String, dynamic> toSupbasestore() {
     return {
-      "userId": userId,
-      "productId": productId,
-      "product": product,
-      "addedAt": addedAt.toIso8601String(),
+      "user_id": userId,
+      "product_id": productId,
+      "product": product.toJson(), 
+      "added_at": addedAt.toIso8601String(),
       "metadata": metadata,
     };
+  }
+
+  factory WishlistItem.fromSupabaseJson(Map<String, dynamic> data, String id) {
+    return WishlistItem(
+      id: id,
+      userId: data["user_id"] ?? "",
+      productId: data["product_id"] ?? "",
+      product: Products.fromSupabaseJson(
+        Map<String, dynamic>.from(data["product"] ?? {}),
+        data["product_id"] ?? "",
+      ),
+      addedAt: DateTime.tryParse(data["added_at"] ?? "") ?? DateTime.now(),
+      metadata: Map<String, dynamic>.from(data["metadata"] ?? {}),
+    );
   }
 
   @override
@@ -46,7 +47,9 @@ class Wishlist {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Wishlist && runtimeType == other.runtimeType && id == other.id;
+      other is WishlistItem &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
 
   @override
   int get hashCode => id.hashCode;

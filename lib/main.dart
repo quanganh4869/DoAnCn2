@@ -8,6 +8,7 @@ import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/splash_screen.dart';
 import 'package:ecomerceapp/controller/theme_controller.dart';
 import 'package:ecomerceapp/controller/product_controller.dart';
+import 'package:ecomerceapp/controller/wishlist_controller.dart';
 import 'package:ecomerceapp/controller/category_controller.dart';
 import 'package:ecomerceapp/controller/navigation_controller.dart';
 
@@ -21,6 +22,7 @@ Future<void> main() async {
   Get.put(NavigationController());
   Get.put(ProductController());
   Get.put(CategoryController());
+  Get.put(WishlistController());
 
   await SupabaseDataSeeder.seedAllData();
   runApp(const MyApp());
