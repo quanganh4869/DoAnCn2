@@ -70,7 +70,6 @@ class Products {
       reviewCount: data['review_count'] ?? 0,
       tags: List<String>.from(data['tags'] ?? []),
       specification: Map<String, dynamic>.from(data['specification'] ?? {}), 
-      // Chuyển đổi chuỗi ISO 8601 thành DateTime
       createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : null,
       updatedAt: data['updated_at'] != null ? DateTime.parse(data['updated_at']) : null,
     );

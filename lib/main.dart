@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_themes.dart';
 import 'package:ecomerceapp/supabase/connect.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/utils/supabase_data_seeder.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/splash_screen.dart';
@@ -23,7 +24,7 @@ Future<void> main() async {
   Get.put(ProductController());
   Get.put(CategoryController());
   Get.put(WishlistController());
-
+  Get.put(CartController());
   await SupabaseDataSeeder.seedAllData();
   runApp(const MyApp());
 }

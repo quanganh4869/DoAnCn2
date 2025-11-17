@@ -1,14 +1,28 @@
 import 'package:get/get.dart';
-import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:ecomerceapp/models/product.dart';
+import 'package:ecomerceapp/models/cart_item.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/features/checkout/screens/checkout_screen.dart';
 
-class CartScreen extends StatelessWidget {
-  // Giả sử bạn có danh sách cartItems
-  final List<Products> cartItems;
-  const CartScreen({super.key, required this.cartItems});
+class CartScreen extends StatefulWidget {
+  const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final CartController controller = Get.put(CartController());
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadCartItem();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,45 +44,72 @@ class CartScreen extends StatelessWidget {
             isDark ? Colors.white : Colors.black,
           ),
         ),
+        centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: cartItems.isEmpty
-                ? Center(
-                    child: Text(
-                      'Your cart is empty',
-                      style: AppTextStyles.withColor(
-                        AppTextStyles.h3,
-                        isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: cartItems.length,
-                    itemBuilder: (context, index) =>
-                        _buildCartItem(context, cartItems[index]),
+      // Obx LỚN nhất bao trùm body để lắng nghe thay đổi của list cartItems
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (controller.cartItems.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'Your cart is empty',
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.h3,
+                    isDark ? Colors.white : Colors.black,
                   ),
-          ),
-          _buildCartSummary(context),
-        ],
-      ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            // Danh sách sản phẩm
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16.0),
+                itemCount: controller.cartItems.length,
+                separatorBuilder: (ctx, index) => const SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  // Lấy item ra
+                  final item = controller.cartItems[index];
+                  return _buildCartItem(context, item);
+                },
+              ),
+            ),
+            // Phần tổng tiền (Summary)
+            _buildCartSummary(context),
+          ],
+        );
+      }),
     );
   }
 
-  Widget _buildCartItem(BuildContext context, Products product) {
+  Widget _buildCartItem(BuildContext context, CartItem item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
+
+    // LƯU Ý: Không dùng Obx ở đây cho item.quantity
+    // Vì item.quantity là int thường, khi controller update list, 
+    // Obx cha ở hàm build sẽ rebuild lại widget này.
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.grey.withOpacity(0.1),
+            color: isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
             blurRadius: 4.0,
             offset: const Offset(0, 2),
           ),
@@ -76,94 +117,127 @@ class CartScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // 1. Ảnh sản phẩm
           ClipRRect(
-            borderRadius: const BorderRadius.horizontal(
-              left: Radius.circular(16),
-            ),
+            borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              product.primaryImage.isNotEmpty
-                  ? product.primaryImage
-                  : 'https://via.placeholder.com/100',
-              width: 100,
-              height: 100,
+              item.product?.primaryImage ?? '',
+              width: 90,
+              height: 90,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 90,
+                height: 90,
+                color: Colors.grey[300],
+                child: const Icon(Icons.broken_image, color: Colors.grey),
+              ),
             ),
           ),
+          const SizedBox(width: 12),
+
+          // 2. Thông tin (Dùng Expanded để tránh lỗi Overflow 99k pixel)
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          product.name,
-                          style: AppTextStyles.withColor(
-                            AppTextStyles.h3,
-                            isDark ? Colors.white : Colors.black,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.delete_outlined,
-                          color: Colors.red[400],
-                        ),
-                        onPressed: () =>
-                            _showDeleteConfirmationDialog(context, product),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "\$${product.price.toStringAsFixed(2)}",
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Hàng 1: Tên + Nút xóa
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tên sản phẩm (Expanded để xuống dòng nếu tên dài)
+                    Expanded(
+                      child: Text(
+                        item.product?.name ?? 'Unknown Product',
                         style: AppTextStyles.withColor(
-                          AppTextStyles.h2,
+                          AppTextStyles.h3,
                           isDark ? Colors.white : Colors.black,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey[800] : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.remove,
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                              onPressed: () {},
-                            ),
-                            Text(
-                              '1', // TODO: dùng state để quản lý số lượng
-                              style: AppTextStyles.withColor(
-                                AppTextStyles.h3,
-                                isDark ? Colors.white : Colors.black,
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.add,
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                              onPressed: () {},
-                            ),
-                          ],
+                    ),
+                    // Nút xóa
+                    InkWell(
+                      onTap: () => _showDeleteConfirmationDialog(context, item),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: Colors.red[400],
+                          size: 22,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                
+                // Size (nếu có)
+                if (item.selectedSize != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 4),
+                    child: Text(
+                      "Size: ${item.selectedSize}",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
                   ),
-                ],
-              ),
+
+                const SizedBox(height: 8),
+
+                // Hàng 2: Giá + Nút tăng giảm
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Giá tiền
+                    Text(
+                      "${priceFormatter.format(item.totalPrice)} đ",
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.h3,
+                        Theme.of(context).primaryColor,
+                      ).copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    
+                    // Bộ điều khiển số lượng
+                    Container(
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey[800] : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min, // Quan trọng để tránh overflow
+                        children: [
+                          IconButton(
+                            iconSize: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            constraints: const BoxConstraints(), // Xóa padding mặc định
+                            icon: Icon(Icons.remove, color: isDark ? Colors.white : Colors.black),
+                            onPressed: () => controller.decreaseQuantity(item),
+                          ),
+                          // Text số lượng (Không bọc Obx vì đã có Obx cha)
+                          Text(
+                            item.quantity.toString(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          IconButton(
+                            iconSize: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            constraints: const BoxConstraints(),
+                            icon: Icon(Icons.add, color: isDark ? Colors.white : Colors.black),
+                            onPressed: () => controller.increaseQuantity(item),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -171,97 +245,97 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmationDialog(BuildContext context, Products product) {
+  Widget _buildCartSummary(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
+
+    // Container này nằm trong Column ở hàm build, KHÔNG được dùng Expanded bọc ngoài nó
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10.0,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Chỉ chiếm chiều cao cần thiết
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Obx(() => Text(
+                  'Total (${controller.itemCount.value} items):',
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.bodyLarge,
+                    isDark ? Colors.grey[300]! : Colors.grey[700]!,
+                  ),
+                )),
+                Obx(() => Text(
+                  '${priceFormatter.format(controller.total.value)} đ',
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.h2,
+                    isDark ? Colors.white : Colors.black,
+                  ).copyWith(fontWeight: FontWeight.bold),
+                )),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Get.to(() => CheckoutScreen()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Checkout',
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.buttonMedium,
+                    Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, CartItem item) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Remove Item'),
-          content: const Text(
-            'Are you sure you want to remove this item from the cart?',
-          ),
+          content: const Text('Are you sure you want to remove this item?'),
           actions: [
             TextButton(
               child: const Text('Cancel'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: const Text('Remove'),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
               onPressed: () {
-                // TODO: xóa item khỏi cartItems
+                controller.removeItem(item);
                 Navigator.of(context).pop();
               },
             ),
           ],
         );
       },
-    );
-  }
-
-  Widget _buildCartSummary(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final totalPrice = cartItems.fold<double>(
-        0, (sum, item) => sum + item.price); // tính tổng đơn giản
-
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.grey.withOpacity(0.1),
-            blurRadius: 4.0,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total:',
-                style: AppTextStyles.withColor(
-                  AppTextStyles.h2,
-                  isDark ? Colors.white : Colors.black,
-                ),
-              ),
-              Text(
-                '\$${totalPrice.toStringAsFixed(2)}',
-                style: AppTextStyles.withColor(
-                  AppTextStyles.h2,
-                  isDark ? Colors.white : Colors.black,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Get.to(() => CheckoutScreen()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Checkout',
-                style: AppTextStyles.withColor(
-                  AppTextStyles.buttonMedium,
-                  Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -35,7 +35,6 @@ class WishlistScreen extends StatelessWidget {
         ],
       ),
 
-      // 🔥 Auto refresh khi update
       body: GetBuilder<WishlistController>(
         builder: (controller) {
           if (controller.isLoading) {
@@ -70,11 +69,6 @@ class WishlistScreen extends StatelessWidget {
       ),
     );
   }
-
-  // ==========================================================
-  // UI BLOCKS
-  // ==========================================================
-
   Widget _buildError(WishlistController controller) {
     return Center(
       child: Column(
@@ -129,9 +123,6 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  // ==========================================================
-  // FIXED — Wishlist Item
-  // ==========================================================
   Widget _buildItem(BuildContext context, Products product, WishlistController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -148,7 +139,6 @@ class WishlistScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // FIX FALLBACK 404
           ClipRRect(
             borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
             child: Image.network(
@@ -215,7 +205,6 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  /// Fix URL rỗng hoặc sai → tránh 404
   String _safe(String url) {
     if (url.isEmpty || !url.startsWith("http")) {
       return "https://via.placeholder.com/150";

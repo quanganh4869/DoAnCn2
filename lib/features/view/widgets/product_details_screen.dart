@@ -1,11 +1,14 @@
 import 'dart:ui';
 import 'package:intl/intl.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/material.dart'; // Đã bao gồm widgets
+import 'package:ecomerceapp/controller/wishlist_controller.dart';
+import 'package:ecomerceapp/supabase/cart_supabase_services.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
+import 'package:get/get.dart'; // Dùng Get để quản lý state và snackbar tiện hơn
 
 class ProductDetailsScreen extends StatefulWidget {
   final Products product;
@@ -16,6 +19,21 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  String? _selectedSize;
+  String? _selectedColor;
+  bool _isAdding = false;
+
+  // Hàm hỗ trợ lấy size
+  List<String> _getAvailableSizes() {
+    if (widget.product.specification.containsKey("sizes")) {
+      final sizes = widget.product.specification["sizes"];
+      if (sizes is List) {
+        return List<String>.from(sizes);
+      }
+    }
+    return [];
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -58,6 +76,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- IMAGE SECTION ---
             Stack(
               children: [
                 AspectRatio(
@@ -72,44 +91,40 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       return Container(
                         color: Colors.grey[300],
                         child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
+                          child: Icon(Icons.image_not_supported,
+                              size: 50, color: Colors.grey),
                         ),
                       );
                     },
                   ),
                 ),
                 Positioned(
-                  top: 8,
-                  right: 8,
-                  child: IconButton(
-                    onPressed: () {},
-                    icon: Icon(
-                      widget.product.isFavourite
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: widget.product.isFavourite
-                          ? Theme.of(context).primaryColor
-                          : (isDark ? Colors.white : Colors.black),
-                    ),
+                  top: screenWidth * 0.04,
+                  right: screenWidth * 0.04,
+                  child: GetBuilder<WishlistController>(
+                    id: "Wishlist_${widget.product.id}",
+                    builder: (controller) {
+                      final isWishlist =
+                          controller.isProductInWishList(widget.product.id);
+                      return IconButton(
+                        onPressed: () async {
+                          await controller.toggleWishlist(widget.product);
+                          controller.update(["Wishlist_${widget.product.id}"]);
+                        },
+                        icon: Icon(
+                          isWishlist ? Icons.favorite : Icons.favorite_border,
+                          color: isWishlist
+                              ? Theme.of(context).primaryColor
+                              : (isDark ? Colors.white : Colors.black),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
             ),
+
+            // --- INFO SECTION ---
             Padding(
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: Column(
@@ -135,38 +150,28 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             "${priceFormatter.format(widget.product.price)} VND",
                             style: AppTextStyles.withColor(
                               AppTextStyles.h2,
-                              Theme.of(
-                                context,
-                              ).textTheme.headlineMedium!.color!,
+                              Theme.of(context).textTheme.headlineMedium!.color!,
                             ).copyWith(fontWeight: FontWeight.bold),
                           ),
-
                           if (widget.product.oldPrice != null &&
                               widget.product.oldPrice! >
                                   widget.product.price) ...[
                             SizedBox(height: screenHeight * 0.005),
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Text(
                                   "${priceFormatter.format(widget.product.oldPrice)} VND",
-                                  style:
-                                      AppTextStyles.withColor(
-                                        AppTextStyles.bodySmall,
-                                        isDark
-                                            ? Colors.grey[400]!
-                                            : Colors.grey[600]!,
-                                      ).copyWith(
-                                        decoration: TextDecoration.lineThrough,
-                                        fontWeight: FontWeight.normal,
-                                      ),
+                                  style: AppTextStyles.withColor(
+                                    AppTextStyles.bodySmall,
+                                    isDark ? Colors.grey[400]! : Colors.grey[600]!,
+                                  ).copyWith(
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.red,
                                     borderRadius: BorderRadius.circular(4),
@@ -174,10 +179,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   child: Text(
                                     "${((widget.product.oldPrice! - widget.product.price) / widget.product.oldPrice! * 100).round()}% OFF",
                                     style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -187,9 +191,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ),
                     ],
                   ),
-
                   SizedBox(height: screenHeight * 0.01),
-                  // Dòng hiển thị Category và Brand
+                  
+                  // Category & Brand
                   Row(
                     children: [
                       Text(
@@ -200,6 +204,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         ),
                       ),
                       if (widget.product.brand != null) ...[
+                        const SizedBox(width: 8),
+                        Text("|", style: TextStyle(color: Colors.grey)),
                         const SizedBox(width: 8),
                         Text(
                           widget.product.brand!,
@@ -212,16 +218,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     ],
                   ),
 
-                  // Hiển thị trạng thái kho hàng
+                  // Stock Status
                   if (widget.product.stock <= 5 && widget.product.stock > 0)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         "Only ${widget.product.stock} left in stock",
                         style: AppTextStyles.withColor(
-                          AppTextStyles.bodySmall,
-                          Colors.orange,
-                        ),
+                            AppTextStyles.bodySmall, Colors.orange),
                       ),
                     )
                   else if (widget.product.stock == 0)
@@ -230,13 +234,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       child: Text(
                         "Out of stock",
                         style: AppTextStyles.withColor(
-                          AppTextStyles.bodySmall,
-                          Colors.red,
-                        ),
+                            AppTextStyles.bodySmall, Colors.red),
                       ),
                     ),
 
                   SizedBox(height: screenHeight * 0.02),
+
                   // Size Selector
                   if (_getAvailableSizes().isNotEmpty) ...[
                     Text(
@@ -249,12 +252,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     SizedBox(height: screenHeight * 0.01),
                     SizeSelector(
                       sizes: _getAvailableSizes(),
-                      onSizeSelected: (size) {},
+                      // Thêm logic để highlight size đã chọn
+                      onSizeSelected: (size) {
+                        setState(() {
+                          _selectedSize = size;
+                        });
+                      },
                     ),
+                    if (_selectedSize == null)
+                       Padding(
+                         padding: const EdgeInsets.only(top: 8.0),
+                         child: Text("Please select a size", style: TextStyle(color: Colors.red[300], fontSize: 12)),
+                       ),
                   ],
 
                   SizedBox(height: screenHeight * 0.02),
-                  // Description
                   Text(
                     "Description",
                     style: AppTextStyles.withColor(
@@ -276,7 +288,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ],
         ),
       ),
-      // Navigation Bar
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(screenWidth * 0.04),
@@ -284,40 +295,49 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: _isAdding || widget.product.stock == 0
+                      ? null
+                      : _handleAddToCart, // Gọi hàm xử lý
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      vertical: screenHeight * 0.02,
-                    ),
+                    padding:
+                        EdgeInsets.symmetric(vertical: screenHeight * 0.02),
                     side: BorderSide(
-                      color: isDark ? Colors.white70 : Colors.black12,
-                    ),
+                        color: isDark ? Colors.white70 : Colors.black12),
                   ),
-                  child: Text(
-                    "Add to Cart",
-                    style: AppTextStyles.withColor(
-                      AppTextStyles.buttonMedium,
-                      Theme.of(context).textTheme.bodyLarge!.color!,
-                    ),
-                  ),
+                  child: _isAdding
+                      ? SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(
+                                Theme.of(context).primaryColor),
+                          ),
+                        )
+                      : Text(
+                          "Add to Cart",
+                          style: AppTextStyles.withColor(
+                            AppTextStyles.buttonMedium,
+                            Theme.of(context).textTheme.bodyLarge!.color!,
+                          ),
+                        ),
                 ),
               ),
               SizedBox(width: screenWidth * 0.04),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // Logic Buy Now (thường là thêm vào cart rồi chuyển sang checkout)
+                  },
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      vertical: screenHeight * 0.02,
-                    ),
+                    padding:
+                        EdgeInsets.symmetric(vertical: screenHeight * 0.02),
                     backgroundColor: Theme.of(context).primaryColor,
                   ),
                   child: Text(
                     "Buy Now",
                     style: AppTextStyles.withColor(
-                      AppTextStyles.buttonMedium,
-                      Colors.white,
-                    ),
+                        AppTextStyles.buttonMedium, Colors.white),
                   ),
                 ),
               ),
@@ -328,37 +348,77 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  // Các hàm hỗ trợ (Giữ nguyên)
-  List<String> _getAvailableSizes() {
-    if (widget.product.specification.containsKey("sizes")) {
-      final sizes = widget.product.specification["sizes"];
-      if (sizes is List) {
-        return List<String>.from(sizes);
-      }
-    }
-    return [];
-  }
-
-  Future<void> _shareProduct(
-    BuildContext context,
-    String productName,
-    String description,
-  ) async {
+  Future<void> _shareProduct(BuildContext context, String productName, String description) async {
     final box = context.findRenderObject() as RenderBox?;
-    const String shopLink = "";
-    final String shareMessage = "$description\n\nShop now at $shopLink";
-
     try {
-      final ShareResult result = await Share.share(
-        shareMessage,
+      await Share.share(
+        "$description\n\nCheck out $productName!",
         subject: productName,
         sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
       );
-      if (result.status == ShareResultStatus.success) {
-        debugPrint("Thanks for sharing");
-      }
     } catch (e) {
       debugPrint("Error sharing: $e");
+    }
+  }
+
+  Future<void> _handleAddToCart() async {
+    // Validate Size
+    if (_getAvailableSizes().isNotEmpty && _selectedSize == null) {
+      Get.snackbar(
+        "Select Size", 
+        "Please select a size to continue",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+      return;
+    }
+
+    setState(() {
+      _isAdding = true;
+    });
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        Get.snackbar("Login Required", "Please login to add items to cart.");
+        return;
+      }
+
+      final success = await CartSupabaseServices.addToCart(
+        userId: user.id,
+        product: widget.product,
+        selectedSize: _selectedSize,
+        selectedColor: _selectedColor,
+        quantity: 1,
+      );
+
+      if (success == true) {
+        Get.snackbar(
+          "Success", 
+          "Added to cart successfully",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+      } else {
+        Get.snackbar(
+          "Error", 
+          "Failed to add to cart",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      debugPrint("Error adding to cart: $e");
+      Get.snackbar("Error", "An unexpected error occurred");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAdding = false;
+        });
+      }
     }
   }
 }

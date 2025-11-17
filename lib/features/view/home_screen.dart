@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/features/view/cart_screen.dart';
+import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/controller/theme_controller.dart';
 import 'package:ecomerceapp/features/view/widgets/sale_banner.dart';
@@ -14,6 +15,7 @@ class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final AuthController authController = Get.put(AuthController());
+  final CartController cartController = Get.put(CartController());
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +68,30 @@ class HomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.notification_add_outlined),
                   ),
                   IconButton(
-                    onPressed: () => Get.to(() => CartScreen(cartItems: [])),
+                    onPressed: () => Get.to(() => CartScreen()),
                     icon: const Icon(Icons.shopping_bag_outlined),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Obx(
+                      () => cartController.cartItems.isEmpty
+                          ? const SizedBox.shrink()
+                          : Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                cartController.cartItems.length.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                    ),
                   ),
                   GetBuilder<ThemeController>(
                     builder: (controller) => IconButton(
@@ -101,7 +125,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-           const Expanded(child: ProductGrid()),
+            const Expanded(child: ProductGrid()),
           ],
         ),
       ),
