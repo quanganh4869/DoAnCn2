@@ -1,9 +1,10 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/features/view/main_screen.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/features/view/main_screen.dart'; 
 import 'package:ecomerceapp/features/view/signup_screen.dart';
+import 'package:ecomerceapp/admin_dashboard/view/admin_dasboard.dart';
 import 'package:ecomerceapp/features/view/forgotpassword_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
 
@@ -14,8 +15,7 @@ class SigninScreen extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Hàm xử lý đăng nhập
-  Future<void> _handleSignin(BuildContext context) async {
+ Future<void> _handleSignin(BuildContext context) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -23,22 +23,23 @@ class SigninScreen extends StatelessWidget {
       Get.snackbar("Error", "Please fill in all fields");
       return;
     }
-
     final authController = Get.find<AuthController>();
     final success = await authController.login(email, password);
-
     if (success) {
-      Get.offAll(() => const MainScreen());
-    } else {
-      Get.snackbar("Login Failed", "Invalid email or password");
-    }
-  }
+      print("Login success. Checking Admin permission...");
+      print("Is Admin? ${authController.isAdmin}");
 
+      if (authController.isAdmin) {
+        Get.offAll(() => AdminDashboardScreen()); 
+      } else {
+        Get.offAll(() => const MainScreen());
+      }
+    } 
+  }
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Nếu có email được truyền từ reset_password thì gán vào ô nhập sẵn
     if (email != null && email!.isNotEmpty) {
       _emailController.text = email!;
     }
@@ -98,7 +99,7 @@ class SigninScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _handleSignin(context),
+                  onPressed: () => _handleSignin(context), 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),

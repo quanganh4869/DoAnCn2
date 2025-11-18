@@ -3,7 +3,10 @@ import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ecomerceapp/models/user_profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+// 1. Import Model UserProfile
 
 class AuthController extends GetxController {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -12,11 +15,17 @@ class AuthController extends GetxController {
   final RxBool _isFirstime = true.obs;
   final RxBool _isLoggedIn = false.obs;
 
+  // 2. Thêm biến lưu trữ UserProfile đầy đủ (bao gồm role)
+  final Rx<UserProfile?> _userProfile = Rx<UserProfile?>(null);
+
   bool get isFirstime => _isFirstime.value;
   bool get isLoggedIn => _isLoggedIn.value;
   User? get currentUser => _supabase.auth.currentUser;
 
-  // User info
+  // 3. Getter để AccountScreen gọi được
+  UserProfile? get userProfile => _userProfile.value;
+
+  // User info (Giữ nguyên cho code cũ)
   var userName = "".obs;
   var userAvatar = "".obs;
 
@@ -61,25 +70,31 @@ class AuthController extends GetxController {
 
     _isLoggedIn.value = true;
     _storage.write('isLoggedIn', true);
-
+    print(" ID của tài khoản đang đăng nhập: ${user.id}");
     try {
       final data = await _supabase
           .from('users')
           .select()
           .eq('id', user.id)
           .maybeSingle();
-
+      print("👉 Dữ liệu lấy được từ DB: $data");
       if (data != null) {
+        // 4. Cập nhật Model UserProfile (Thêm phần này)
+        _userProfile.value = UserProfile.fromJson(data);
+
+        // Cập nhật các biến cũ (Giữ nguyên logic cũ)
         userName.value = data['full_name'] ?? "User";
         userAvatar.value = data['user_image'] ?? defaultAvatar;
       } else {
         userName.value = "User";
         userAvatar.value = defaultAvatar;
+        _userProfile.value = null; // Reset profile nếu không tìm thấy
       }
     } catch (e) {
       print('[LoadUser] error -> $e');
       userName.value = "User";
       userAvatar.value = defaultAvatar;
+      _userProfile.value = null;
     }
   }
 
@@ -121,6 +136,7 @@ class AuthController extends GetxController {
       );
       User? user = authResp.user ?? _supabase.auth.currentUser;
       if (user == null) {
+        
         Get.snackbar("Signup Error", "Không tạo được user.");
         return false;
       }
@@ -134,20 +150,25 @@ class AuthController extends GetxController {
         }
       }
 
-      await _supabase.from('users').insert({
+      final userData = {
         'id': user.id,
         'full_name': name,
         'email': email,
         'phone': phone,
         'gender': gender,
         'user_image': avatarUrl,
+        'role': 'user', 
         'created_at': DateTime.now().toIso8601String(),
-      });
+      };
+
+      await _supabase.from('users').insert(userData);
 
       _isLoggedIn.value = true;
       _storage.write('isLoggedIn', true);
+
       userName.value = name;
       userAvatar.value = avatarUrl;
+      _userProfile.value = UserProfile.fromJson(userData);
 
       Get.snackbar("Welcome", "Signup successful!");
       return true;
@@ -170,16 +191,8 @@ class AuthController extends GetxController {
         _isLoggedIn.value = true;
         _storage.write('isLoggedIn', true);
 
-        // Load user info
-        final data = await _supabase
-            .from('users')
-            .select()
-            .eq('id', user.id)
-            .maybeSingle();
-        if (data != null) {
-          userName.value = data['full_name'] ?? "User";
-          userAvatar.value = data['user_image'] ?? defaultAvatar;
-        }
+        // Load user info (Hàm này đã được sửa ở trên để load cả profile)
+        await _loadUserFromSession();
 
         Get.snackbar("Welcome", "Login successful!");
         return true;
@@ -306,6 +319,22 @@ class AuthController extends GetxController {
     _isLoggedIn.value = false;
     userName.value = "";
     userAvatar.value = "";
+    _userProfile.value = null; // 6. Reset profile khi logout
     _storage.write('isLoggedIn', false);
+  }
+
+  bool get isAdmin {
+    final profile = userProfile;
+    
+    // Debug: In ra console để xem chính xác nó đang so sánh cái gì
+    print("--- CHECK ADMIN ---");
+    print("Profile Object: $profile");
+    print("Role from DB: '${profile?.role}'"); // Có dấu nháy để xem có khoảng trắng thừa không
+
+    if (profile == null || profile.role == null) return false;
+
+    // So sánh an toàn: Chuyển về chữ thường và cắt khoảng trắng
+    // Ví dụ: " Admin " -> "admin"
+    return profile.role!.trim().toLowerCase() == 'admin';
   }
 }
