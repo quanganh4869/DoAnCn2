@@ -1,14 +1,14 @@
 import 'dart:ui';
+import 'package:get/get.dart'; 
 import 'package:intl/intl.dart';
+import 'package:flutter/material.dart'; 
 import 'package:share_plus/share_plus.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/material.dart'; // Đã bao gồm widgets
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
 import 'package:ecomerceapp/supabase/cart_supabase_services.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
-import 'package:get/get.dart'; // Dùng Get để quản lý state và snackbar tiện hơn
 
 class ProductDetailsScreen extends StatefulWidget {
   final Products product;
@@ -297,7 +297,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 child: OutlinedButton(
                   onPressed: _isAdding || widget.product.stock == 0
                       ? null
-                      : _handleAddToCart, // Gọi hàm xử lý
+                      : _handleAddToCart,
                   style: OutlinedButton.styleFrom(
                     padding:
                         EdgeInsets.symmetric(vertical: screenHeight * 0.02),

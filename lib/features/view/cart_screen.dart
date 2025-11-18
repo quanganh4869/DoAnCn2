@@ -57,7 +57,11 @@ class _CartScreenState extends State<CartScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[400]),
+                Icon(
+                  Icons.shopping_cart_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Your cart is empty',
@@ -98,12 +102,15 @@ class _CartScreenState extends State<CartScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
 
-    // LƯU Ý: Không dùng Obx ở đây cho item.quantity
-    // Vì item.quantity là int thường, khi controller update list, 
-    // Obx cha ở hàm build sẽ rebuild lại widget này.
+    // FIX 1: Lấy product từ item ra biến cục bộ để dễ xử lý
+    final product = item.product;
+
+    // Nếu dữ liệu sản phẩm bị null thì trả về rỗng để tránh crash app
+    if (product == null) return const SizedBox();
 
     return Container(
       padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(bottom: 16), // Thêm khoảng cách dưới
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -121,7 +128,7 @@ class _CartScreenState extends State<CartScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              item.product?.primaryImage ?? '',
+              product.primaryImage,
               width: 90,
               height: 90,
               fit: BoxFit.cover,
@@ -135,7 +142,7 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(width: 12),
 
-          // 2. Thông tin (Dùng Expanded để tránh lỗi Overflow 99k pixel)
+          // 2. Thông tin
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,10 +152,9 @@ class _CartScreenState extends State<CartScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tên sản phẩm (Expanded để xuống dòng nếu tên dài)
                     Expanded(
                       child: Text(
-                        item.product?.name ?? 'Unknown Product',
+                        product.name,
                         style: AppTextStyles.withColor(
                           AppTextStyles.h3,
                           isDark ? Colors.white : Colors.black,
@@ -157,7 +163,6 @@ class _CartScreenState extends State<CartScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // Nút xóa
                     InkWell(
                       onTap: () => _showDeleteConfirmationDialog(context, item),
                       child: Padding(
@@ -171,7 +176,7 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ],
                 ),
-                
+
                 // Size (nếu có)
                 if (item.selectedSize != null)
                   Padding(
@@ -191,15 +196,60 @@ class _CartScreenState extends State<CartScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Giá tiền
-                    Text(
-                      "${priceFormatter.format(item.totalPrice)} đ",
-                      style: AppTextStyles.withColor(
-                        AppTextStyles.h3,
-                        Theme.of(context).primaryColor,
-                      ).copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+                    // Cột Giá Tiền (FIX: Dùng biến product thay vì widget.product)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${priceFormatter.format(product.price)} VND",
+                          style: AppTextStyles.withColor(
+                            AppTextStyles.h2,
+                            Theme.of(context).textTheme.headlineMedium!.color!,
+                          ).copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        // Logic hiển thị giá cũ
+                        if (product.oldPrice != null &&
+                            product.oldPrice! > product.price) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                "${priceFormatter.format(product.oldPrice)} VND",
+                                style:
+                                    AppTextStyles.withColor(
+                                      AppTextStyles.bodySmall,
+                                      isDark
+                                          ? Colors.grey[400]!
+                                          : Colors.grey[600]!,
+                                    ).copyWith(
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  "${((product.oldPrice! - product.price) / product.oldPrice! * 100).round()}% OFF",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
-                    
+
                     // Bộ điều khiển số lượng
                     Container(
                       height: 32,
@@ -208,16 +258,22 @@ class _CartScreenState extends State<CartScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min, // Quan trọng để tránh overflow
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             iconSize: 16,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
-                            constraints: const BoxConstraints(), // Xóa padding mặc định
-                            icon: Icon(Icons.remove, color: isDark ? Colors.white : Colors.black),
-                            onPressed: () => controller.decreaseQuantity(item),
+                            constraints: const BoxConstraints(),
+                            icon: Icon(
+                              Icons.remove,
+                              color: item.quantity > 1
+                                  ? (isDark ? Colors.white : Colors.black)
+                                  : Colors.grey,
+                            ),
+                            onPressed: item.quantity > 1
+                                ? () => controller.decreaseQuantity(item)
+                                : null,
                           ),
-                          // Text số lượng (Không bọc Obx vì đã có Obx cha)
                           Text(
                             item.quantity.toString(),
                             style: TextStyle(
@@ -229,7 +285,10 @@ class _CartScreenState extends State<CartScreen> {
                             iconSize: 16,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             constraints: const BoxConstraints(),
-                            icon: Icon(Icons.add, color: isDark ? Colors.white : Colors.black),
+                            icon: Icon(
+                              Icons.add,
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
                             onPressed: () => controller.increaseQuantity(item),
                           ),
                         ],
@@ -245,11 +304,12 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  // ... (Các phần code khác giữ nguyên)
+
   Widget _buildCartSummary(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
 
-    // Container này nằm trong Column ở hàm build, KHÔNG được dùng Expanded bọc ngoài nó
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
@@ -265,48 +325,81 @@ class _CartScreenState extends State<CartScreen> {
       ),
       child: SafeArea(
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Chỉ chiếm chiều cao cần thiết
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // Dòng tổng tiền
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Obx(() => Text(
-                  'Total (${controller.itemCount.value} items):',
-                  style: AppTextStyles.withColor(
-                    AppTextStyles.bodyLarge,
-                    isDark ? Colors.grey[300]! : Colors.grey[700]!,
-                  ),
-                )),
+                      'Total (${controller.itemCount.value} items):',
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.bodyLarge,
+                        isDark ? Colors.grey[300]! : Colors.grey[700]!,
+                      ),
+                    )),
                 Obx(() => Text(
-                  '${priceFormatter.format(controller.total.value)} đ',
-                  style: AppTextStyles.withColor(
-                    AppTextStyles.h2,
-                    isDark ? Colors.white : Colors.black,
-                  ).copyWith(fontWeight: FontWeight.bold),
-                )),
+                      '${priceFormatter.format(controller.total.value)} đ',
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.h2,
+                        isDark ? Colors.white : Colors.black,
+                      ).copyWith(fontWeight: FontWeight.bold),
+                    )),
               ],
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Get.to(() => CheckoutScreen()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 20),
+            
+            // Hàng chứa 2 nút: Clear Cart & Checkout
+            Row(
+              children: [
+                // --- NÚT CLEAR CART (Màu trắng) ---
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _showClearCartConfirmationDialog(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? Colors.grey[800] : Colors.white, // Nền trắng (hoặc xám tối nếu dark mode)
+                      foregroundColor: Colors.red, // Chữ đỏ
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      side: const BorderSide(color: Colors.red, width: 1), // Viền đỏ
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Delete All',
+                      style: TextStyle(
+                        fontSize: 16, 
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
                   ),
-                  elevation: 0,
                 ),
-                child: Text(
-                  'Checkout',
-                  style: AppTextStyles.withColor(
-                    AppTextStyles.buttonMedium,
-                    Colors.white,
+                
+                const SizedBox(width: 16), // Khoảng cách giữa 2 nút
+
+                // --- NÚT CHECKOUT ---
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Get.to(() => CheckoutScreen()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Checkout',
+                      style: AppTextStyles.withColor(
+                        AppTextStyles.buttonMedium,
+                        Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -314,6 +407,33 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  // Hàm hiển thị hộp thoại xác nhận xóa tất cả
+  void _showClearCartConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear Cart'),
+          content: const Text('Are you sure you want to remove all items?'),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                // Gọi hàm clearCart trong controller
+                // Lưu ý: Đảm bảo controller có hàm clearCart không cần tham số hoặc tự lấy userId
+                controller.clearCart(); 
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
   void _showDeleteConfirmationDialog(BuildContext context, CartItem item) {
     showDialog(
       context: context,

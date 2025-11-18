@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
@@ -6,11 +7,16 @@ import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
 
 class WishlistScreen extends StatelessWidget {
-  WishlistScreen({super.key});
+  const WishlistScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (!Get.isRegistered<AuthController>()) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final auth = Get.find<AuthController>();
     final user = auth.currentUser;
 
@@ -22,10 +28,11 @@ class WishlistScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           "My Wishlist",
-          style: AppTextStyles.withColor(
-            AppTextStyles.h3,
-            isDark ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 25,
+            fontWeight: FontWeight.bold
+          )
         ),
         actions: [
           IconButton(
@@ -34,10 +41,10 @@ class WishlistScreen extends StatelessWidget {
           ),
         ],
       ),
-
       body: GetBuilder<WishlistController>(
+        init: WishlistController(),
         builder: (controller) {
-          if (controller.isLoading) {
+          if (controller.isLoading && controller.wishlistProducts.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -49,18 +56,26 @@ class WishlistScreen extends StatelessWidget {
             return _buildEmpty(isDark);
           }
 
-          return CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _buildSummary(context, controller.itemCount),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => _buildItem(context, controller.wishlistProducts[i], controller),
-                    childCount: controller.wishlistProducts.length,
-                  ),
+          return Column(
+            children: [
+              // 1. ĐƯA SUMMARY LÊN ĐẦU
+              _buildSummary(context, controller),
+
+              // 2. DANH SÁCH SẢN PHẨM Ở DƯỚI
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, i) => _buildItem(
+                              context, controller.wishlistProducts[i], controller),
+                          childCount: controller.wishlistProducts.length,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -69,6 +84,8 @@ class WishlistScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ... (Giữ nguyên _buildError và _buildEmpty) ...
   Widget _buildError(WishlistController controller) {
     return Center(
       child: Column(
@@ -76,7 +93,8 @@ class WishlistScreen extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, size: 50, color: Colors.grey[400]),
           const SizedBox(height: 12),
-          Text(controller.errorMessage, style: TextStyle(color: Colors.grey[600])),
+          Text(controller.errorMessage,
+              style: TextStyle(color: Colors.grey[600])),
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: controller.refreshWishlist,
@@ -92,105 +110,187 @@ class WishlistScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border, size: 70, color: Colors.grey[400]),
+          Icon(Icons.favorite_border, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            "Wishlist của bạn trống",
-            style: TextStyle(fontSize: 18, color: isDark ? Colors.white70 : Colors.black54),
+            "Your wishlist is empty",
+            style: TextStyle(
+                fontSize: 18, color: isDark ? Colors.white70 : Colors.black54),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummary(BuildContext context, int count) {
+  // --- ĐÃ SỬA GIAO DIỆN CHO PHÙ HỢP VỊ TRÍ TRÊN CÙNG ---
+  Widget _buildSummary(BuildContext context, WishlistController controller) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[200],
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text("$count items", style: AppTextStyles.h2),
-          ElevatedButton(
-            onPressed: () {},
-            child: const Text("Add All to Cart"),
-          ),
+        color: Theme.of(context).cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, 4), // Đổ bóng xuống dưới
+            blurRadius: 10,
+          )
         ],
+        // Bo góc dưới thay vì bo góc trên
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        bottom: false, // Không cần safe area bottom vì ở trên cùng
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Total Items",
+                  style: AppTextStyles.withColor(
+                      AppTextStyles.bodySmall, Colors.grey),
+                ),
+                Text(
+                  "${controller.itemCount} items",
+                  style: AppTextStyles.withColor(
+                    AppTextStyles.h2,
+                    isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            ElevatedButton(
+              onPressed: controller.isLoading
+                  ? null
+                  : () {
+                      controller.addAllToCart();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: controller.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      "Add All to Cart",
+                      style: AppTextStyles.withColor(
+                          AppTextStyles.buttonMedium, Colors.white),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildItem(BuildContext context, Products product, WishlistController controller) {
+  // ... (Giữ nguyên _buildItem và _safe) ...
+  Widget _buildItem(
+      BuildContext context, Products product, WishlistController controller) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
           )
         ],
       ),
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+            borderRadius:
+                const BorderRadius.horizontal(left: Radius.circular(16)),
             child: Image.network(
               _safe(product.primaryImage),
-              width: 110,
-              height: 110,
+              width: 100,
+              height: 100,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                width: 110,
-                height: 110,
+                width: 100,
+                height: 100,
                 color: Colors.grey[300],
-                child: const Icon(Icons.image_not_supported),
+                child:
+                    const Icon(Icons.image_not_supported, color: Colors.grey),
               ),
             ),
           ),
-
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h3),
-
-                  const SizedBox(height: 6),
-                  Text(product.category, style: AppTextStyles.bodySmall),
-
-                  const SizedBox(height: 6),
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.withColor(
+                      AppTextStyles.h3,
+                      isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    product.category,
+                    style: AppTextStyles.withColor(
+                        AppTextStyles.bodySmall, Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("${product.price} VND",
-                          style: AppTextStyles.h3),
-
+                      Text(
+                        "${priceFormatter.format(product.price)} đ",
+                        style: AppTextStyles.withColor(
+                          AppTextStyles.h3,
+                          Theme.of(context).primaryColor,
+                        ).copyWith(fontWeight: FontWeight.bold),
+                      ),
                       Row(
                         children: [
                           IconButton(
-                            onPressed: () {},
-                            icon: Icon(Icons.shopping_cart_outlined,
-                                color: Theme.of(context).primaryColor),
+                            onPressed: (product.stock ?? 0) > 0
+                                ? () => controller.addSingleItemToCart(product)
+                                : null,
+                            icon: Icon(
+                              Icons.shopping_cart_checkout,
+                              color: (product.stock ?? 0) > 0
+                                  ? Theme.of(context).primaryColor
+                                  : Colors.grey,
+                            ),
+                            tooltip: "Add to Cart",
                           ),
-
                           IconButton(
                             onPressed: () async {
                               await controller.removeFromWishlist(product.id);
-                              controller.update(); 
                             },
-                            icon: Icon(Icons.delete_outline,
-                                color: Colors.redAccent),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: Colors.red[400],
+                            ),
+                            tooltip: "Remove",
                           ),
                         ],
                       )
@@ -205,8 +305,8 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  String _safe(String url) {
-    if (url.isEmpty || !url.startsWith("http")) {
+  String _safe(String? url) {
+    if (url == null || url.isEmpty || !url.startsWith("http")) {
       return "https://via.placeholder.com/150";
     }
     return url;

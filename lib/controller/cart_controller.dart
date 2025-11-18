@@ -34,11 +34,11 @@ class CartController extends GetxController {
   RxDouble get total => _total;
 
   // Helper: userId from local storage
- String? get _userId {
-  // Lấy trực tiếp từ phiên đăng nhập hiện tại của Supabase
-  final user = Supabase.instance.client.auth.currentUser;
-  return user?.id;
-}
+  String? get _userId {
+    // Lấy trực tiếp từ phiên đăng nhập hiện tại của Supabase
+    final user = Supabase.instance.client.auth.currentUser;
+    return user?.id;
+  }
 
   // LOAD CART (1 lần)
   Future<void> loadUserCart(String userId) async {
@@ -190,8 +190,11 @@ class CartController extends GetxController {
   Future<bool> removeItem(CartItem item) async {
     final userId = _userId;
     if (userId == null) {
-      Get.snackbar("Authentication Required", "Please sign in",
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Authentication Required",
+        "Please sign in",
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return false;
     }
     final removed = await CartSupabaseServices.removeCartItem(item.id);
@@ -203,31 +206,48 @@ class CartController extends GetxController {
 
   // REMOVE ITEM (by id) - keep existing signature
   // CartController
-Future<bool> removeCartItem(String cartItemId) async {
-  try {
-    final userId = GetStorage().read("userId");
-    if (userId == null) return false;
+  Future<bool> removeCartItem(String cartItemId) async {
+    try {
+      final userId = GetStorage().read("userId");
+      if (userId == null) return false;
 
-    final removed = await CartSupabaseServices.removeCartItem(cartItemId);
-    if (removed) {
-      await loadUserCart(userId);
+      final removed = await CartSupabaseServices.removeCartItem(cartItemId);
+      if (removed) {
+        await loadUserCart(userId);
+      }
+      return removed;
+    } catch (e) {
+      print("Error removing cart item: $e");
+      return false;
     }
-    return removed;
-  } catch (e) {
-    print("Error removing cart item: $e");
-    return false;
   }
-}
-
 
   // CLEAR ALL ITEMS
-  Future<bool> clearCart(String userId) async {
-    final cleared = await CartSupabaseServices.clearUserCart(userId);
-    if (cleared) {
-      _cartItems.clear();
-      await _refreshTotals(userId);
+  // Thêm vào CartController
+  Future<void> clearCart() async {
+    final userId = _userId; 
+    if (userId == null) return;
+
+    try {
+      _isLoading.value = true;
+      // Gọi service để xóa
+      final success = await CartSupabaseServices.clearUserCart(userId);
+
+      if (success) {
+        _cartItems.clear();
+        _itemCount.value = 0;
+        _subtotal.value = 0.0;
+        _saving.value = 0.0;
+        _total.value = 0.0; 
+
+        Get.snackbar("Success", "Cart cleared successfully");
+      }
+    } catch (e) {
+      print("Error clearing cart: $e");
+      Get.snackbar("Error", "Failed to clear cart");
+    } finally {
+      _isLoading.value = false;
     }
-    return cleared;
   }
 
   // REFRESH TOTALS
