@@ -42,6 +42,7 @@ class MyApp extends StatelessWidget {
       themeMode: themeController.theme,
       defaultTransition: Transition.fade,
       home: SplashScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

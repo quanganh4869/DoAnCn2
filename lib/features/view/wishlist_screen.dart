@@ -262,7 +262,7 @@ class WishlistScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "${priceFormatter.format(product.price)} đ",
+                        "${priceFormatter.format(product.price)} VND",
                         style: AppTextStyles.withColor(
                           AppTextStyles.h3,
                           Theme.of(context).primaryColor,

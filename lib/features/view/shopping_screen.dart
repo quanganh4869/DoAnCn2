@@ -11,13 +11,13 @@ import 'package:ecomerceapp/features/view/widgets/fillter_bottom_sheet.dart';
 class ShoppingScreen extends StatelessWidget {
   const ShoppingScreen({super.key});
 
- 
+
   @override
   Widget build(BuildContext context) {
 final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(        
+      appBar: AppBar(
         title: Text(
           "Shopping",
           style: TextStyle(
@@ -33,14 +33,14 @@ final isDark = Theme.of(context).brightness == Brightness.dark;
             },
            icon: Icon(
             Icons.search,
-            color: isDark ? Colors.white : Colors.black, 
+            color: isDark ? Colors.white : Colors.black,
            )
            ),
            IconButton(
             onPressed: () => FillterBottomSheet.show(context),
            icon: Icon(
             Icons.filter_list,
-            color: isDark ? Colors.white : Colors.black, 
+            color: isDark ? Colors.white : Colors.black,
            )
            )
         ],

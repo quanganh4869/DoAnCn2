@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/signin_screen.dart';
-import 'package:ecomerceapp/features/view/signup_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
 
 class ResetPasswordScreen extends StatelessWidget {

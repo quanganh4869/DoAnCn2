@@ -19,6 +19,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
+    // Load dữ liệu khi màn hình vừa khởi tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadCartItem();
     });
@@ -45,13 +46,16 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ),
         centerTitle: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
       ),
-      // Obx LỚN nhất bao trùm body để lắng nghe thay đổi của list cartItems
       body: Obx(() {
+        // 1. Trạng thái Loading
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
 
+        // 2. Trạng thái Giỏ hàng rỗng
         if (controller.cartItems.isEmpty) {
           return Center(
             child: Column(
@@ -75,22 +79,22 @@ class _CartScreenState extends State<CartScreen> {
           );
         }
 
+        // 3. Hiển thị danh sách và tổng tiền
         return Column(
           children: [
-            // Danh sách sản phẩm
+            // Danh sách sản phẩm (Scrollable)
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.all(16.0),
                 itemCount: controller.cartItems.length,
                 separatorBuilder: (ctx, index) => const SizedBox(height: 16),
                 itemBuilder: (context, index) {
-                  // Lấy item ra
                   final item = controller.cartItems[index];
                   return _buildCartItem(context, item);
                 },
               ),
             ),
-            // Phần tổng tiền (Summary)
+            // Phần tổng tiền cố định ở dưới
             _buildCartSummary(context),
           ],
         );
@@ -98,19 +102,17 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  // --- WIDGET: CART ITEM ---
   Widget _buildCartItem(BuildContext context, CartItem item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
-
-    // FIX 1: Lấy product từ item ra biến cục bộ để dễ xử lý
     final product = item.product;
 
-    // Nếu dữ liệu sản phẩm bị null thì trả về rỗng để tránh crash app
+    // Safety check: Nếu sản phẩm bị null, trả về rỗng
     if (product == null) return const SizedBox();
 
     return Container(
       padding: const EdgeInsets.all(8),
-      margin: const EdgeInsets.only(bottom: 16), // Thêm khoảng cách dưới
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -128,7 +130,7 @@ class _CartScreenState extends State<CartScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              product.primaryImage,
+              product.images.isNotEmpty ? product.images[0] : '',
               width: 90,
               height: 90,
               fit: BoxFit.cover,
@@ -142,12 +144,12 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(width: 12),
 
-          // 2. Thông tin
+          // 2. Thông tin chi tiết
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Hàng 1: Tên + Nút xóa
+                // Tên sản phẩm và nút xóa
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,11 +194,11 @@ class _CartScreenState extends State<CartScreen> {
 
                 const SizedBox(height: 8),
 
-                // Hàng 2: Giá + Nút tăng giảm
+                // Giá tiền và Tăng/Giảm số lượng
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Cột Giá Tiền (FIX: Dùng biến product thay vì widget.product)
+                    // Cột giá tiền
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -205,52 +207,49 @@ class _CartScreenState extends State<CartScreen> {
                           style: AppTextStyles.withColor(
                             AppTextStyles.h2,
                             Theme.of(context).textTheme.headlineMedium!.color!,
-                          ).copyWith(fontWeight: FontWeight.bold),
+                          ).copyWith(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        // Logic hiển thị giá cũ
+                        // Giá cũ (nếu có)
                         if (product.oldPrice != null &&
-                            product.oldPrice! > product.price) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                "${priceFormatter.format(product.oldPrice)} VND",
-                                style:
-                                    AppTextStyles.withColor(
-                                      AppTextStyles.bodySmall,
-                                      isDark
-                                          ? Colors.grey[400]!
-                                          : Colors.grey[600]!,
-                                    ).copyWith(
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  "${((product.oldPrice! - product.price) / product.oldPrice! * 100).round()}% OFF",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                            product.oldPrice! > product.price)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Row(
+                              children: [
+                                Text(
+                                  "${priceFormatter.format(product.oldPrice)} VND",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    decoration: TextDecoration.lineThrough,
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "-${((product.oldPrice! - product.price) / product.oldPrice! * 100).round()}%",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
                       ],
                     ),
 
-                    // Bộ điều khiển số lượng
+                    // Bộ tăng giảm số lượng
                     Container(
                       height: 32,
                       decoration: BoxDecoration(
@@ -304,8 +303,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // ... (Các phần code khác giữ nguyên)
-
+  // --- WIDGET: CART SUMMARY ---
   Widget _buildCartSummary(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
@@ -327,7 +325,7 @@ class _CartScreenState extends State<CartScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Dòng tổng tiền
+            // Dòng tổng cộng
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -348,40 +346,37 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            
-            // Hàng chứa 2 nút: Clear Cart & Checkout
+
+            // Hàng nút bấm
             Row(
               children: [
-                // --- NÚT CLEAR CART (Màu trắng) ---
+                // Nút Xóa hết (Clear All)
                 Expanded(
-                  child: ElevatedButton(
+                  child: OutlinedButton(
                     onPressed: () => _showClearCartConfirmationDialog(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? Colors.grey[800] : Colors.white, // Nền trắng (hoặc xám tối nếu dark mode)
-                      foregroundColor: Colors.red, // Chữ đỏ
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      side: const BorderSide(color: Colors.red, width: 1), // Viền đỏ
+                      side: const BorderSide(color: Colors.red),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 0,
                     ),
                     child: const Text(
-                      'Delete All',
+                      'Clear All',
                       style: TextStyle(
-                        fontSize: 16, 
-                        fontWeight: FontWeight.bold
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
-                
-                const SizedBox(width: 16), // Khoảng cách giữa 2 nút
+                const SizedBox(width: 16),
 
-                // --- NÚT CHECKOUT ---
+                // Nút Checkout
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Get.to(() => CheckoutScreen()),
+                    onPressed: () => Get.to(() => const CheckoutScreen()),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -407,7 +402,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // Hàm hiển thị hộp thoại xác nhận xóa tất cả
+  // --- DIALOGS ---
   void _showClearCartConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -423,9 +418,7 @@ class _CartScreenState extends State<CartScreen> {
             TextButton(
               child: const Text('Clear All', style: TextStyle(color: Colors.red)),
               onPressed: () {
-                // Gọi hàm clearCart trong controller
-                // Lưu ý: Đảm bảo controller có hàm clearCart không cần tham số hoặc tự lấy userId
-                controller.clearCart(); 
+                controller.clearCart();
                 Navigator.of(context).pop();
               },
             ),
@@ -434,6 +427,7 @@ class _CartScreenState extends State<CartScreen> {
       },
     );
   }
+
   void _showDeleteConfirmationDialog(BuildContext context, CartItem item) {
     showDialog(
       context: context,
