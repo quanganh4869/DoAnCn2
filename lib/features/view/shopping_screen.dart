@@ -5,6 +5,7 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/features/view/widgets/product_grid.dart';
 import 'package:ecomerceapp/features/view/widgets/category_chips.dart';
+import 'package:ecomerceapp/features/view/widgets/search_result_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/fillter_bottom_sheet.dart';
 
 class ShoppingScreen extends StatelessWidget {
@@ -19,14 +20,17 @@ final isDark = Theme.of(context).brightness == Brightness.dark;
       appBar: AppBar(        
         title: Text(
           "Shopping",
-          style: AppTextStyles.withColor(
-            AppTextStyles.h3,
-            isDark ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+            fontSize: 24,
+          )
         ),
         actions: [
           IconButton(
-            onPressed: (){},
+            onPressed: (){
+              Get.to(SearchResultScreen());
+            },
            icon: Icon(
             Icons.search,
             color: isDark ? Colors.white : Colors.black, 

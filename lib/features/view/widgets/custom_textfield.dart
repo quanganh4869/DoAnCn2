@@ -10,6 +10,9 @@ class CustomTextfield extends StatefulWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final String? initialValue;
+  final bool readOnly;
+  final Color? textColor; // Thuộc tính để tùy chỉnh màu chữ khi readOnly
+
   const CustomTextfield({
     super.key,
     required this.label,
@@ -19,7 +22,9 @@ class CustomTextfield extends StatefulWidget {
     this.controller,
     this.validator,
     this.onChanged,
-    this.initialValue
+    this.initialValue, // <--- ĐÃ THÊM DẤU PHẨY (,) Ở ĐÂY
+    this.readOnly = false,
+    this.textColor,
   });
 
   @override
@@ -32,16 +37,22 @@ class _CustomTextfieldState extends State<CustomTextfield> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return TextFormField(
       controller: widget.controller,
       initialValue: widget.initialValue,
-      obscureText: widget.isPassword? _obscureText : false,
+      obscureText: widget.isPassword ? _obscureText : false,
       keyboardType: widget.keyboardType,
       validator: widget.validator,
       onChanged: widget.onChanged,
+      
+      // 1. ÁP DỤNG THUỘC TÍNH readOnly
+      readOnly: widget.readOnly, 
+      
       style: AppTextStyles.withColor(
         AppTextStyles.bodyMedium,
-        Theme.of(context).textTheme.bodyLarge!.color!,
+        // 2. ÁP DỤNG THUỘC TÍNH textColor, sử dụng màu mặc định nếu là null
+        widget.textColor ?? Theme.of(context).textTheme.bodyLarge!.color!,
       ),
       decoration: InputDecoration(
         labelText: widget.label,
@@ -60,8 +71,9 @@ class _CustomTextfieldState extends State<CustomTextfield> {
                     _obscureText = !_obscureText;
                   });
                 },
+                // Sửa lỗi chính tả/logic: Thay Icons.vibration bằng Icons.visibility
                 icon: Icon(
-                  _obscureText ? Icons.visibility_off : Icons.vibration,
+                  _obscureText ? Icons.visibility_off : Icons.visibility, 
                 ),
               )
             : null,

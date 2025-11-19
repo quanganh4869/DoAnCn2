@@ -11,14 +11,9 @@ import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 import 'package:ecomerceapp/features/myorders/view/screens/my_order_screen.dart';
 import 'package:ecomerceapp/features/edit_profile/views/screens/edit_profile_screen.dart';
 import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_screen.dart';
-// Controllers
-// Screens
-
-
 class AccountScreen extends StatelessWidget {
   AccountScreen({super.key});
   
-  // Khởi tạo SellerController để check trạng thái bán hàng
   final SellerController sellerController = Get.put(SellerController());
 
   @override
@@ -131,7 +126,7 @@ class AccountScreen extends StatelessWidget {
           _buildMenuItem(context, Icons.location_on_outlined, "Shipping Addresses", 
               () => Get.to(() => ShippingAddressScreen())),
           
-          // --- 1. LOGIC SELLER BUTTON (NGƯỜI BÁN) ---
+          // NGƯỜI BÁN
           Obx(() {
             final seller = sellerController.currentSeller.value;
             
@@ -166,13 +161,10 @@ class AccountScreen extends StatelessWidget {
             return _buildCustomMenuItem(context, icon, title, onTap, textColor: textColor);
           }),
 
-          // --- 2. LOGIC ADMIN BUTTON (QUẢN TRỊ VIÊN) ---
           GetBuilder<AuthController>(
             builder: (controller) {
-              // Lấy role từ userProfile (đã fix lỗi undefined_getter)
               final role = controller.userProfile?.role;
               
-              // Chỉ hiện nút nếu role là admin
               if (role == 'admin') {
                 return _buildMenuItem(
                   context, 
@@ -181,11 +173,10 @@ class AccountScreen extends StatelessWidget {
                   () => Get.to(() => AdminDashboardScreen())
                 );
               }
-              return const SizedBox.shrink(); // Ẩn nếu không phải admin
+              return const SizedBox.shrink(); 
             },
           ),
           
-          // ---------------------------
 
           _buildMenuItem(context, Icons.logout, "Logout", 
               () => _showLogoutDialog(context)),
@@ -194,12 +185,10 @@ class AccountScreen extends StatelessWidget {
     );
   }
 
-  // Widget Helper chuẩn
   Widget _buildMenuItem(BuildContext context, IconData icon, String title, VoidCallback onTap) {
     return _buildCustomMenuItem(context, icon, title, onTap);
   }
 
-  // Widget Helper mở rộng để hỗ trợ đổi màu text (cho nút Seller status)
   Widget _buildCustomMenuItem(BuildContext context, IconData icon, String title, VoidCallback onTap, {Color? textColor}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(

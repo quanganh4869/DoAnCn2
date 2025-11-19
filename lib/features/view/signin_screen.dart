@@ -15,6 +15,7 @@ class SigninScreen extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // --- PHẦN SỬA ĐỔI LOGIC ---
  Future<void> _handleSignin(BuildContext context) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -23,6 +24,7 @@ class SigninScreen extends StatelessWidget {
       Get.snackbar("Error", "Please fill in all fields");
       return;
     }
+
     final authController = Get.find<AuthController>();
     final success = await authController.login(email, password);
     if (success) {
@@ -99,7 +101,7 @@ class SigninScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _handleSignin(context), 
+                  onPressed: () => _handleSignin(context), // Gọi hàm xử lý đã sửa
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),

@@ -63,36 +63,51 @@ class HomeScreen extends StatelessWidget {
                     );
                   }),
                   const Spacer(),
+
                   IconButton(
                     onPressed: () => Get.to(() => NotificationScreen()),
                     icon: const Icon(Icons.notification_add_outlined),
                   ),
-                  IconButton(
-                    onPressed: () => Get.to(() => CartScreen()),
-                    icon: const Icon(Icons.shopping_bag_outlined),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Obx(
-                      () => cartController.cartItems.isEmpty
-                          ? const SizedBox.shrink()
-                          : Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                cartController.cartItems.length.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+
+                  Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () => Get.to(() => CartScreen()),
+                        icon: const Icon(Icons.shopping_bag_outlined),
+                      ),
+                      Obx(
+                        () => cartController.cartItems.isEmpty
+                            ? const SizedBox.shrink()
+                            : Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      cartController.cartItems.length
+                                          .toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                    ),
+                      ),
+                    ],
                   ),
+
+                  // 3. Icon Theme
                   GetBuilder<ThemeController>(
                     builder: (controller) => IconButton(
                       onPressed: () => controller.toggleTheme(),

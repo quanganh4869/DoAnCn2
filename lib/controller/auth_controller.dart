@@ -6,9 +6,11 @@ import 'package:get_storage/get_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ecomerceapp/models/user_profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ecomerceapp/supabase/auth_supabase_services.dart';
 // 1. Import Model UserProfile
 
 class AuthController extends GetxController {
+  final AuthSupabaseServices _authServices = AuthSupabaseServices();
   final SupabaseClient _supabase = Supabase.instance.client;
   final GetStorage _storage = GetStorage();
 
@@ -336,5 +338,37 @@ class AuthController extends GetxController {
     // So sánh an toàn: Chuyển về chữ thường và cắt khoảng trắng
     // Ví dụ: " Admin " -> "admin"
     return profile.role!.trim().toLowerCase() == 'admin';
+  }
+  Future<bool> updateProfile({
+    required String fullName,
+    required String phone,
+    String? gender, 
+    String? userImage, 
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null || userProfile == null) {
+      Get.snackbar("Error", "Không tìm thấy người dùng đang đăng nhập.");
+      return false;
+    }
+    try {
+      await _authServices.updateProfile(
+        userId: user.id,
+        fullName: fullName,
+        phone: phone,
+        gender: gender,
+        userImage: userImage,
+      );
+      final updatedProfile = userProfile!.copyWith(
+        fullName: fullName,
+        phone: phone,
+      );
+      _userProfile.value = updatedProfile;
+      userName.value = fullName;
+      Get.snackbar("Success", "Cập nhật hồ sơ thành công!");
+      return true;
+    } catch (e) {
+      Get.snackbar("Update Error", "Không thể cập nhật hồ sơ: $e");
+      return false;
+    }
   }
 }

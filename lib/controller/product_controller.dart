@@ -17,6 +17,10 @@ class ProductController extends GetxController {
   final RxString _selectedCategory = "".obs;
   final RxString _searchQuery = "".obs;
 
+  // THÊM: Biến lưu trữ khoảng giá lọc
+  final Rx<double?> _minPriceFilter = Rx<double?>(null);
+  final Rx<double?> _maxPriceFilter = Rx<double?>(null);
+
   // Getters
   List<Products> get allProducts => _allProducts;
   List<Products> get filteredProducts => _filteredProducts;
@@ -28,6 +32,9 @@ class ProductController extends GetxController {
   String get errorMessage => _errorMessage.value;
   String get selectedCategory => _selectedCategory.value;
   String get searchQuery => _searchQuery.value;
+  // THÊM: Getters cho Price Filter
+  double? get minPriceFilter => _minPriceFilter.value;
+  double? get maxPriceFilter => _maxPriceFilter.value;
 
   @override
   void onInit() {
@@ -54,7 +61,6 @@ class ProductController extends GetxController {
       _hasError.value = true;
       _errorMessage.value = "Failed to load products. Please try again.";
       print("Error loading products: $e");
-
       _allProducts.clear();
       _filteredProducts.clear();
     } finally {
@@ -92,6 +98,18 @@ class ProductController extends GetxController {
     }
   }
 
+  // SỬA: Thay thế filterByCategory bằng hàm đa tiêu chí
+  void applyFilters({String? category, double? minPrice, double? maxPrice}) {
+    // 1. Cập nhật trạng thái Filter
+    _selectedCategory.value = category ?? _selectedCategory.value;
+    _minPriceFilter.value = minPrice;
+    _maxPriceFilter.value = maxPrice;
+
+    // 2. Thực hiện lọc
+    _applyFilter();
+    update();
+  }
+
   void filterByCategory(String category) {
     _selectedCategory.value = category;
     _applyFilter();
@@ -107,6 +125,8 @@ class ProductController extends GetxController {
   void resetFilters() {
     _selectedCategory.value = "All";
     _searchQuery.value = "";
+    _minPriceFilter.value = null; // RESET GIÁ
+    _maxPriceFilter.value = null; // RESET GIÁ
     _filteredProducts.value = _allProducts;
     _applyFilter();
     update();
@@ -118,9 +138,11 @@ class ProductController extends GetxController {
     update();
   }
 
+  // SỬA: Tích hợp logic lọc giá vào hàm _applyFilter
   void _applyFilter() {
     List<Products> filtered = List.from(_allProducts);
 
+    // 1. LỌC THEO CATEGORY
     if (_selectedCategory.value != "All" &&
         _selectedCategory.value.isNotEmpty) {
       final selectedCat = _selectedCategory.value.toLowerCase();
@@ -146,6 +168,20 @@ class ProductController extends GetxController {
       print("Showing all products: ${_allProducts.length}");
     }
 
+    // 2. LỌC THEO PRICE RANGE
+    final min = _minPriceFilter.value;
+    final max = _maxPriceFilter.value;
+
+    if (min != null) {
+      filtered = filtered.where((product) => product.price >= min).toList();
+      print("Filtering: Price >= $min");
+    }
+    if (max != null) {
+      filtered = filtered.where((product) => product.price <= max).toList();
+      print("Filtering: Price <= $max");
+    }
+
+    // 3. LỌC THEO SEARCH QUERY
     if (_searchQuery.value.isNotEmpty) {
       final query = _searchQuery.value.toLowerCase();
       filtered = filtered
@@ -203,6 +239,8 @@ class ProductController extends GetxController {
   void clearFilters() {
     _selectedCategory.value = "All";
     _searchQuery.value = "";
+    _minPriceFilter.value = null;
+    _maxPriceFilter.value = null;
     _filteredProducts.value = _allProducts;
   }
 

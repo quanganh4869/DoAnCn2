@@ -6,7 +6,7 @@ class UserProfile {
   final String? gender;
   final String? userImage;
   final String? role;
-  final bool? isActive; // <--- THÊM: Trạng thái hoạt động (cho Admin chặn/mở chặn)
+  final bool? isActive; 
   final DateTime createdAt;
 
   const UserProfile({
@@ -17,7 +17,7 @@ class UserProfile {
     this.gender,
     this.userImage,
     this.role,
-    this.isActive, // <--- THÊM
+    this.isActive, 
     required this.createdAt,
   });
 
@@ -30,8 +30,7 @@ class UserProfile {
       gender: json['gender'],
       userImage: json['user_image'],
       role: json['role'], 
-      // Ánh xạ trạng thái hoạt động từ cột 'is_active'
-      isActive: (json['is_active'] ?? json['isActive'] ?? true) as bool, // Mặc định là true
+      isActive: (json['is_active'] ?? json['isActive'] ?? true) as bool,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
@@ -50,7 +49,6 @@ class UserProfile {
     };
   }
 
-  // Phương thức copyWith giúp update trạng thái isActive trong Controller
   UserProfile copyWith({
     String? id,
     String? fullName,
@@ -59,7 +57,7 @@ class UserProfile {
     String? gender,
     String? userImage,
     String? role,
-    bool? isActive, // <--- THÊM
+    bool? isActive, 
     DateTime? createdAt,
   }) {
     return UserProfile(
@@ -70,7 +68,7 @@ class UserProfile {
       gender: gender ?? this.gender,
       userImage: userImage ?? this.userImage,
       role: role ?? this.role,
-      isActive: isActive ?? this.isActive, // <--- THÊM
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
     );
   }
