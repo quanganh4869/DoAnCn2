@@ -225,7 +225,7 @@ class CartController extends GetxController {
   // CLEAR ALL ITEMS
   // Thêm vào CartController
   Future<void> clearCart() async {
-    final userId = _userId; 
+    final userId = _userId;
     if (userId == null) return;
 
     try {
@@ -238,7 +238,7 @@ class CartController extends GetxController {
         _itemCount.value = 0;
         _subtotal.value = 0.0;
         _saving.value = 0.0;
-        _total.value = 0.0; 
+        _total.value = 0.0;
 
         Get.snackbar("Success", "Cart cleared successfully");
       }

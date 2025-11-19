@@ -1,15 +1,21 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/features/checkout/screens/widgets/address_card.dart';
+import 'package:ecomerceapp/controller/cart_controller.dart';
+import 'package:ecomerceapp/controller/address_controller.dart';
 import 'package:ecomerceapp/features/checkout/screens/widgets/order_summary_card.dart';
 import 'package:ecomerceapp/features/checkout/screens/widgets/checkout_bottom_bar.dart';
 import 'package:ecomerceapp/features/checkout/screens/widgets/payment_method_card.dart';
+import 'package:ecomerceapp/features/checkout/screens/widgets/checkout_address_card.dart';
 import 'package:ecomerceapp/features/order_confirmation/screens/order_confirmation_screen.dart';
+// Import Controllers
+// Import Screens & Widgets
 
 class CheckoutScreen extends StatelessWidget {
-  const CheckoutScreen({super.key});
+  CheckoutScreen({super.key});
+
+  final CartController cartController = Get.find<CartController>();
+  final AddressController addressController = Get.put(AddressController());
 
   @override
   Widget build(BuildContext context) {
@@ -25,43 +31,51 @@ class CheckoutScreen extends StatelessWidget {
           ),
         ),
         title: Text(
-          "CheckOut",
+          "Checkout",
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,
           ),
         ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 1. Shipping Address
             _buildSectionTitle(context, "Shipping Address"),
             const SizedBox(height: 16),
-            AddressCard(),
+            CheckoutAddressCard(), // Đã rewrite
+
             const SizedBox(height: 24),
+
+            // 2. Payment Method
             _buildSectionTitle(context, "Payment Method"),
-            PaymentMethodCard(),
+            const SizedBox(height: 16),
+            const PaymentMethodCard(), // Đã rewrite
+
             const SizedBox(height: 24),
-            _buildSectionTitle(context, "Order Sumary"),
+
+            // 3. Order Summary (Tổng hợp tiền)
+            _buildSectionTitle(context, "Order Summary"),
             const SizedBox(height: 16),
-            OrderSummaryCard(),
-            const SizedBox(height: 16),
-            OrderSummaryCard(),
+            OrderSummaryCard(), // Đã rewrite
+
+            // Có thể thêm list item rút gọn ở đây nếu muốn
+            // ...
+
+            const SizedBox(height: 40), // Padding bottom tránh bị che
           ],
         ),
       ),
-      bottomNavigationBar: CheckoutBottomBar(
-        totalAmount: 40.32,
-        onPlaceOrder: (){
-          final orderNumber = "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(7)}";
-          Get.to(()=> OrderConfirmationScreen(
-            orderNumber: orderNumber,
-            totalAmount: 36.36,
-          ));
-        },
-      ),
+
+      // 4. Bottom Bar
+      bottomNavigationBar: Obx(() => CheckoutBottomBar(
+        totalAmount: cartController.total.value,
+        onPlaceOrder: () => _handlePlaceOrder(),
+      )),
     );
   }
 
@@ -74,5 +88,39 @@ class CheckoutScreen extends StatelessWidget {
         isDark ? Colors.white : Colors.black,
       ),
     );
+  }
+
+  void _handlePlaceOrder() {
+    // Kiểm tra xem user đã có địa chỉ chưa
+    if (addressController.addresses.isEmpty) {
+      Get.snackbar(
+        "Missing Address",
+        "Please add a shipping address before placing order.",
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+        snackPosition: SnackPosition.TOP
+      );
+      return;
+    }
+
+    // Kiểm tra giỏ hàng có trống không
+    if (cartController.cartItems.isEmpty) {
+      Get.snackbar(
+        "Empty Cart",
+        "Your cart is empty.",
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+      return;
+    }
+
+    // Tạo mã đơn hàng
+    final orderNumber = "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
+
+    // Chuyển sang trang xác nhận
+    Get.to(() => OrderConfirmationScreen(
+      orderNumber: orderNumber,
+      totalAmount: cartController.total.value,
+    ));
   }
 }

@@ -21,12 +21,12 @@ class OrderConfirmationScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Center( 
+        child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, 
-              crossAxisAlignment: CrossAxisAlignment.center, 
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Lottie.asset(
                   "assets/animations/order_success.json",
@@ -69,7 +69,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                     "Track Order",
                     style: AppTextStyles.withColor(
                       AppTextStyles.buttonMedium,
-                      Colors.white, // nút màu sáng hơn khi ở nền chính
+                      Colors.white,
                     ),
                   ),
                 ),

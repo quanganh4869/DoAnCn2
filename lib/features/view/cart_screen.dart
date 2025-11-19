@@ -383,7 +383,7 @@ class _CartScreenState extends State<CartScreen> {
                 // Nút Checkout
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Get.to(() => const CheckoutScreen()),
+                    onPressed: () => Get.to(() =>  CheckoutScreen()),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
