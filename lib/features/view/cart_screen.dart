@@ -103,12 +103,11 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // --- WIDGET: CART ITEM ---
-  Widget _buildCartItem(BuildContext context, CartItem item) {
+ Widget _buildCartItem(BuildContext context, CartItem item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
     final product = item.product;
 
-    // Safety check: Nếu sản phẩm bị null, trả về rỗng
     if (product == null) return const SizedBox();
 
     return Container(
@@ -149,7 +148,7 @@ class _CartScreenState extends State<CartScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tên sản phẩm và nút xóa
+                // --- HÀNG 1: Tên sản phẩm và nút xóa ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +167,7 @@ class _CartScreenState extends State<CartScreen> {
                     InkWell(
                       onTap: () => _showDeleteConfirmationDialog(context, item),
                       child: Padding(
-                        padding: const EdgeInsets.all(4.0),
+                        padding: const EdgeInsets.only(left: 8, bottom: 8),
                         child: Icon(
                           Icons.delete_outline,
                           color: Colors.red[400],
@@ -182,7 +181,7 @@ class _CartScreenState extends State<CartScreen> {
                 // Size (nếu có)
                 if (item.selectedSize != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       "Size: ${item.selectedSize}",
                       style: TextStyle(
@@ -192,44 +191,48 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
 
-                // Giá tiền và Tăng/Giảm số lượng
+                // --- HÀNG 2: Giá tiền và Tăng/Giảm số lượng ---
+                // ĐÂY LÀ CHỖ ĐÃ SỬA LỖI TRÀN MÀN HÌNH
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Cột giá tiền
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${priceFormatter.format(product.price)} VND",
-                          style: AppTextStyles.withColor(
-                            AppTextStyles.h2,
-                            Theme.of(context).textTheme.headlineMedium!.color!,
-                          ).copyWith(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        // Giá cũ (nếu có)
-                        if (product.oldPrice != null &&
-                            product.oldPrice! > product.price)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Row(
+                    // Cột giá tiền (Bọc trong Expanded để không đẩy nút số lượng)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${priceFormatter.format(product.price)} VND",
+                            style: AppTextStyles.withColor(
+                              AppTextStyles.h3, // Giảm size chữ xuống h3 hoặc giữ h2 tùy ý, nhưng h3 an toàn hơn
+                              Theme.of(context).textTheme.headlineMedium!.color!,
+                            ).copyWith(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis, // Cắt bớt nếu quá dài
+                          ),
+
+                          // Giá cũ (nếu có)
+                          if (product.oldPrice != null &&
+                              product.oldPrice! > product.price)
+                            Wrap( // Dùng Wrap thay vì Row để tự xuống dòng nếu giá cũ quá dài
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 4,
                               children: [
                                 Text(
                                   "${priceFormatter.format(product.oldPrice)} VND",
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 11, // Giảm size chữ giá cũ
                                     decoration: TextDecoration.lineThrough,
                                     color: isDark
                                         ? Colors.grey[400]
                                         : Colors.grey[600],
                                   ),
                                 ),
-                                const SizedBox(width: 4),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
+                                      horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: Colors.red,
                                     borderRadius: BorderRadius.circular(4),
@@ -238,20 +241,23 @@ class _CartScreenState extends State<CartScreen> {
                                     "-${((product.oldPrice! - product.price) / product.oldPrice! * 100).round()}%",
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 10,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
 
-                    // Bộ tăng giảm số lượng
+                    // Khoảng cách nhỏ giữa giá và nút
+                    const SizedBox(width: 8),
+
+                    // Bộ tăng giảm số lượng (Giữ nguyên kích thước cố định)
                     Container(
-                      height: 32,
+                      height: 30, // Giảm chiều cao một chút cho gọn
                       decoration: BoxDecoration(
                         color: isDark ? Colors.grey[800] : Colors.grey[200],
                         borderRadius: BorderRadius.circular(8),
@@ -277,6 +283,7 @@ class _CartScreenState extends State<CartScreen> {
                             item.quantity.toString(),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 13,
                               color: isDark ? Colors.white : Colors.black,
                             ),
                           ),

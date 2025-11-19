@@ -46,7 +46,6 @@ class ProductCard extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(
         maxWidth: kProductCardMaxWidth,
-        minWidth: screenWidth * 0.4,
       ),
       width: isTablet ? kProductCardMaxWidth : screenWidth * 0.45,
       decoration: BoxDecoration(
