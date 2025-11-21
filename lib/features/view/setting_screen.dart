@@ -15,9 +15,9 @@ class SettingScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(context),
           icon: Icon(
-            Icons.arrow_back_ios,
+            Icons.arrow_back,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),

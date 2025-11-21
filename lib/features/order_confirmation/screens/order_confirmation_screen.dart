@@ -3,7 +3,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/features/view/home_screen.dart';
-import 'package:ecomerceapp/features/myorders/view/screens/my_order_screen.dart';
+import 'package:ecomerceapp/features/myorders/view/my_order_screen.dart';
 
 class OrderConfirmationScreen extends StatelessWidget {
   final String orderNumber;

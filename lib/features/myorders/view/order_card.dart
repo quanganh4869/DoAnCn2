@@ -53,7 +53,7 @@ class OrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Order #${order.OrderNumber}",
+                        "Order #${order.orderNumber}",
                         style: AppTextStyles.withColor(
                           AppTextStyles.h3,
                           Theme.of(context).textTheme.bodyLarge!.color!,

@@ -7,7 +7,7 @@ import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/features/checkout/screens/checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  CartScreen({super.key});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -19,7 +19,6 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    // Load dữ liệu khi màn hình vừa khởi tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadCartItem();
     });
@@ -32,9 +31,9 @@ class _CartScreenState extends State<CartScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(context),
           icon: Icon(
-            Icons.arrow_back_ios,
+            Icons.arrow_back,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -103,7 +102,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // --- WIDGET: CART ITEM ---
- Widget _buildCartItem(BuildContext context, CartItem item) {
+  Widget _buildCartItem(BuildContext context, CartItem item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
     final product = item.product;
@@ -206,17 +205,22 @@ class _CartScreenState extends State<CartScreen> {
                           Text(
                             "${priceFormatter.format(product.price)} VND",
                             style: AppTextStyles.withColor(
-                              AppTextStyles.h3, // Giảm size chữ xuống h3 hoặc giữ h2 tùy ý, nhưng h3 an toàn hơn
-                              Theme.of(context).textTheme.headlineMedium!.color!,
+                              AppTextStyles
+                                  .h3, // Giảm size chữ xuống h3 hoặc giữ h2 tùy ý, nhưng h3 an toàn hơn
+                              Theme.of(
+                                context,
+                              ).textTheme.headlineMedium!.color!,
                             ).copyWith(fontWeight: FontWeight.bold),
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis, // Cắt bớt nếu quá dài
+                            overflow:
+                                TextOverflow.ellipsis, // Cắt bớt nếu quá dài
                           ),
 
                           // Giá cũ (nếu có)
                           if (product.oldPrice != null &&
                               product.oldPrice! > product.price)
-                            Wrap( // Dùng Wrap thay vì Row để tự xuống dòng nếu giá cũ quá dài
+                            Wrap(
+                              // Dùng Wrap thay vì Row để tự xuống dòng nếu giá cũ quá dài
                               crossAxisAlignment: WrapCrossAlignment.center,
                               spacing: 4,
                               children: [
@@ -232,7 +236,9 @@ class _CartScreenState extends State<CartScreen> {
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 1),
+                                    horizontal: 4,
+                                    vertical: 1,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.red,
                                     borderRadius: BorderRadius.circular(4),
@@ -336,20 +342,24 @@ class _CartScreenState extends State<CartScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Obx(() => Text(
-                      'Total (${controller.itemCount.value} items):',
-                      style: AppTextStyles.withColor(
-                        AppTextStyles.bodyLarge,
-                        isDark ? Colors.grey[300]! : Colors.grey[700]!,
-                      ),
-                    )),
-                Obx(() => Text(
-                      '${priceFormatter.format(controller.total.value)} đ',
-                      style: AppTextStyles.withColor(
-                        AppTextStyles.h2,
-                        isDark ? Colors.white : Colors.black,
-                      ).copyWith(fontWeight: FontWeight.bold),
-                    )),
+                Obx(
+                  () => Text(
+                    'Total (${controller.itemCount.value} items):',
+                    style: AppTextStyles.withColor(
+                      AppTextStyles.bodyLarge,
+                      isDark ? Colors.grey[300]! : Colors.grey[700]!,
+                    ),
+                  ),
+                ),
+                Obx(
+                  () => Text(
+                    '${priceFormatter.format(controller.total.value)} đ',
+                    style: AppTextStyles.withColor(
+                      AppTextStyles.h2,
+                      isDark ? Colors.white : Colors.black,
+                    ).copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -383,7 +393,7 @@ class _CartScreenState extends State<CartScreen> {
                 // Nút Checkout
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Get.to(() =>  CheckoutScreen()),
+                    onPressed: () => Get.to(() => CheckoutScreen()),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -423,7 +433,10 @@ class _CartScreenState extends State<CartScreen> {
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Clear All',
+                style: TextStyle(color: Colors.red),
+              ),
               onPressed: () {
                 controller.clearCart();
                 Navigator.of(context).pop();

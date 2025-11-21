@@ -24,11 +24,8 @@ class CheckoutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: isDark ? Colors.white : Colors.black,
-          ),
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
         ),
         title: Text(
           "Checkout",

@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/admin_dashboard/controller/admin_controller.dart';
 // import 'package:fl_chart/fl_chart.dart'; // Cần thư viện biểu đồ
 
-class AdminProductSalesScreen extends StatelessWidget {
-  AdminProductSalesScreen({super.key});
+class Adminproductmanagementscreen extends StatelessWidget {
+  Adminproductmanagementscreen({super.key});
   final AdminController controller = Get.find();
 
   @override
   Widget build(BuildContext context) {
     // Tải dữ liệu biểu đồ
-    controller.fetchDailySalesData(); 
-    
+    controller.fetchDailySalesData();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -47,7 +47,7 @@ class AdminProductSalesScreen extends StatelessWidget {
             icon: const Icon(Icons.calendar_today),
             label: Text(DateFormat('MMM dd, yyyy').format(DateTime.now())),
           ),
-          
+
           const SizedBox(height: 16),
 
           // Danh sách Sản phẩm bán chạy (Placeholder)

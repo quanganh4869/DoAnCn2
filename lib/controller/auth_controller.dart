@@ -3,11 +3,9 @@ import 'package:get/get.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ecomerceapp/models/user_profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/supabase/auth_supabase_services.dart';
-// 1. Import Model UserProfile
 
 class AuthController extends GetxController {
   final AuthSupabaseServices _authServices = AuthSupabaseServices();
@@ -17,17 +15,19 @@ class AuthController extends GetxController {
   final RxBool _isFirstime = true.obs;
   final RxBool _isLoggedIn = false.obs;
 
-  // 2. Thêm biến lưu trữ UserProfile đầy đủ (bao gồm role)
+  // Biến lưu trữ UserProfile đầy đủ (bao gồm role và thông tin seller)
   final Rx<UserProfile?> _userProfile = Rx<UserProfile?>(null);
 
   bool get isFirstime => _isFirstime.value;
   bool get isLoggedIn => _isLoggedIn.value;
   User? get currentUser => _supabase.auth.currentUser;
 
-  // 3. Getter để AccountScreen gọi được
+  // Getter để truy cập UserProfile từ các màn hình khác
   UserProfile? get userProfile => _userProfile.value;
 
-  // User info (Giữ nguyên cho code cũ)
+  Rx<UserProfile?> get userProfileRx => _userProfile;
+
+  // User info cho UI
   var userName = "".obs;
   var userAvatar = "".obs;
 
@@ -39,14 +39,18 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     _loadInitialStates();
-    _loadUserFromSession();
+    loadUserFromSession();
 
+    // Lắng nghe sự thay đổi trạng thái đăng nhập từ Supabase (Login/Logout/Token Refresh)
     _supabase.auth.onAuthStateChange.listen((data) {
       final session = data.session;
       if (session != null && session.user != null) {
-        _loadUserFromSession();
+        // Nếu có session -> reload lại thông tin user để chắc chắn data mới nhất
+        if (_userProfile.value == null || _userProfile.value!.id != session.user.id) {
+           loadUserFromSession();
+        }
       } else {
-        // logout nếu không còn session
+        // Nếu không có session -> logout
         _clearUserState();
       }
     });
@@ -62,8 +66,8 @@ class AuthController extends GetxController {
     _storage.write('isFirstime', false);
   }
 
-  /// Load user info từ Supabase session
-  Future<void> _loadUserFromSession() async {
+  /// Load user info từ Supabase session (bao gồm cả thông tin Seller từ bảng users)
+  Future<void> loadUserFromSession() async {
     final user = _supabase.auth.currentUser;
     if (user == null) {
       _clearUserState();
@@ -72,31 +76,41 @@ class AuthController extends GetxController {
 
     _isLoggedIn.value = true;
     _storage.write('isLoggedIn', true);
-    print(" ID của tài khoản đang đăng nhập: ${user.id}");
-    try {
-      final data = await _supabase
-          .from('users')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
-      print("👉 Dữ liệu lấy được từ DB: $data");
-      if (data != null) {
-        // 4. Cập nhật Model UserProfile (Thêm phần này)
-        _userProfile.value = UserProfile.fromJson(data);
+    print("🆔 ID của tài khoản đang đăng nhập: ${user.id}");
 
-        // Cập nhật các biến cũ (Giữ nguyên logic cũ)
-        userName.value = data['full_name'] ?? "User";
-        userAvatar.value = data['user_image'] ?? defaultAvatar;
+    try {
+      // Gọi Service để lấy UserProfile (đã map sẵn các trường seller trong model)
+      final profile = await _authServices.getUserProfileById(user.id);
+
+      if (profile != null) {
+        _userProfile.value = profile;
+
+        // Cập nhật biến UI
+        userName.value = profile.fullName ?? "User";
+        userAvatar.value = profile.userImage ?? defaultAvatar;
+
+        print("✅ Đã load UserProfile: ${profile.fullName} | SellerStatus: ${profile.sellerStatus}");
       } else {
         userName.value = "User";
         userAvatar.value = defaultAvatar;
-        _userProfile.value = null; // Reset profile nếu không tìm thấy
+        _userProfile.value = null;
       }
     } catch (e) {
       print('[LoadUser] error -> $e');
+      // Giữ trạng thái đăng nhập nhưng reset info hiển thị nếu lỗi
       userName.value = "User";
       userAvatar.value = defaultAvatar;
       _userProfile.value = null;
+    }
+  }
+
+  /// Hàm mới: Cập nhật Local Profile (Dùng cho SellerController hoặc khi edit profile)
+  /// Giúp cập nhật UI ngay lập tức mà không cần gọi lại API
+  Future<void> updateLocalProfile(UserProfile newProfile) async {
+    _userProfile.value = newProfile;
+    userName.value = newProfile.fullName ?? userName.value;
+    if (newProfile.userImage != null) {
+      userAvatar.value = newProfile.userImage!;
     }
   }
 
@@ -122,7 +136,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Signup
+  /// Đăng ký tài khoản User mới (Signup)
   Future<bool> signUp({
     required String name,
     required String email,
@@ -132,17 +146,19 @@ class AuthController extends GetxController {
     File? avatarFile,
   }) async {
     try {
+      // 1. Đăng ký Auth Supabase
       final authResp = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
+
       User? user = authResp.user ?? _supabase.auth.currentUser;
       if (user == null) {
-        
         Get.snackbar("Signup Error", "Không tạo được user.");
         return false;
       }
 
+      // 2. Upload Avatar nếu có
       String avatarUrl = defaultAvatar;
       if (avatarFile != null) {
         try {
@@ -152,25 +168,32 @@ class AuthController extends GetxController {
         }
       }
 
-      final userData = {
-        'id': user.id,
-        'full_name': name,
-        'email': email,
-        'phone': phone,
-        'gender': gender,
-        'user_image': avatarUrl,
-        'role': 'user', 
-        'created_at': DateTime.now().toIso8601String(),
-      };
+      // 3. Tạo UserProfile Model (Bao gồm cả các trường seller mặc định là 'none')
+      final newProfile = UserProfile(
+        id: user.id,
+        fullName: name,
+        email: email,
+        phone: phone,
+        gender: gender,
+        userImage: avatarUrl,
+        role: 'user', // Mặc định là user thường
+        createdAt: DateTime.now().toIso8601String(),
+        isActive: true,
+        sellerStatus: 'none', // Chưa đăng ký shop
+        storeName: null,
+        storeDescription: null,
+      );
 
-      await _supabase.from('users').insert(userData);
+      // 4. Lưu vào bảng 'users' qua Service
+      await _authServices.createUserProfile(newProfile);
 
+      // 5. Cập nhật state local
       _isLoggedIn.value = true;
       _storage.write('isLoggedIn', true);
 
       userName.value = name;
       userAvatar.value = avatarUrl;
-      _userProfile.value = UserProfile.fromJson(userData);
+      _userProfile.value = newProfile;
 
       Get.snackbar("Welcome", "Signup successful!");
       return true;
@@ -193,8 +216,7 @@ class AuthController extends GetxController {
         _isLoggedIn.value = true;
         _storage.write('isLoggedIn', true);
 
-        // Load user info (Hàm này đã được sửa ở trên để load cả profile)
-        await _loadUserFromSession();
+        await loadUserFromSession();
 
         Get.snackbar("Welcome", "Login successful!");
         return true;
@@ -211,7 +233,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Reset password
+  /// Reset password (Gửi mail)
   Future<void> resetPassword(String email) async {
     try {
       await _supabase.auth.resetPasswordForEmail(email);
@@ -233,7 +255,7 @@ class AuthController extends GetxController {
     }
   }
 
-  // Supabse xác thực OTP
+  // Xác thực OTP
   Future<bool> verifyOtp(String email, String otp) async {
     try {
       final response = await _supabase.auth.verifyOTP(
@@ -258,7 +280,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Change password (sau khi xác minh OTP thành công)
+  /// Update Password (Sau khi OTP thành công)
   Future<bool> updatePassword(String newPassword) async {
     try {
       final response = await _supabase.auth.updateUser(
@@ -285,22 +307,10 @@ class AuthController extends GetxController {
         return false;
       }
     } on AuthException catch (e) {
-      Get.snackbar(
-        "Auth Error",
-        e.message,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
+      Get.snackbar("Auth Error", e.message);
       return false;
     } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Unexpected error: ${e.toString()}",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
+      Get.snackbar("Error", "Unexpected error: ${e.toString()}");
       return false;
     }
   }
@@ -316,34 +326,28 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Xóa trạng thái user
+  /// Clear toàn bộ state khi logout
   void _clearUserState() {
     _isLoggedIn.value = false;
     userName.value = "";
     userAvatar.value = "";
-    _userProfile.value = null; // 6. Reset profile khi logout
+    _userProfile.value = null;
     _storage.write('isLoggedIn', false);
   }
 
+  /// Kiểm tra Admin
   bool get isAdmin {
     final profile = userProfile;
-    
-    // Debug: In ra console để xem chính xác nó đang so sánh cái gì
-    print("--- CHECK ADMIN ---");
-    print("Profile Object: $profile");
-    print("Role from DB: '${profile?.role}'"); // Có dấu nháy để xem có khoảng trắng thừa không
-
     if (profile == null || profile.role == null) return false;
-
-    // So sánh an toàn: Chuyển về chữ thường và cắt khoảng trắng
-    // Ví dụ: " Admin " -> "admin"
     return profile.role!.trim().toLowerCase() == 'admin';
   }
+
+  /// Update thông tin cá nhân (User Profile)
   Future<bool> updateProfile({
     required String fullName,
     required String phone,
-    String? gender, 
-    String? userImage, 
+    String? gender,
+    String? userImage,
   }) async {
     final user = _supabase.auth.currentUser;
     if (user == null || userProfile == null) {
@@ -351,6 +355,7 @@ class AuthController extends GetxController {
       return false;
     }
     try {
+      // 1. Gọi Service cập nhật DB
       await _authServices.updateProfile(
         userId: user.id,
         fullName: fullName,
@@ -358,12 +363,17 @@ class AuthController extends GetxController {
         gender: gender,
         userImage: userImage,
       );
+
+      // 2. Cập nhật state local (sử dụng hàm updateLocalProfile mới)
       final updatedProfile = userProfile!.copyWith(
         fullName: fullName,
         phone: phone,
+        gender: gender,
+        userImage: userImage ?? userProfile!.userImage,
       );
-      _userProfile.value = updatedProfile;
-      userName.value = fullName;
+
+      await updateLocalProfile(updatedProfile);
+
       Get.snackbar("Success", "Cập nhật hồ sơ thành công!");
       return true;
     } catch (e) {

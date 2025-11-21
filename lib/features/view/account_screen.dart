@@ -5,16 +5,19 @@ import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/signin_screen.dart';
 import 'package:ecomerceapp/features/view/setting_screen.dart';
 import 'package:ecomerceapp/seller_dasboard/view/seller_signup.dart';
-import 'package:ecomerceapp/admin_dashboard/view/admin_dasboard.dart';
+import 'package:ecomerceapp/features/myorders/view/my_order_screen.dart';
 import 'package:ecomerceapp/seller_dasboard/view/seller_dasboard_screen.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
-import 'package:ecomerceapp/features/myorders/view/screens/my_order_screen.dart';
+import 'package:ecomerceapp/admin_dashboard/view/dashboard_admin/admin_dasboard.dart';
 import 'package:ecomerceapp/features/edit_profile/views/screens/edit_profile_screen.dart';
 import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_screen.dart';
+
 class AccountScreen extends StatelessWidget {
   AccountScreen({super.key});
-  
+
+  // Khởi tạo Controller
   final SellerController sellerController = Get.put(SellerController());
+  final AuthController authController = Get.find<AuthController>();
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +26,7 @@ class AccountScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Account settings",
+          "Account Settings",
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,
@@ -39,13 +42,21 @@ class AccountScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileSection(context),
-            const SizedBox(height: 24),
-            _buildMenuSection(context),
-          ],
+      // --- TÍNH NĂNG KÉO ĐỂ LÀM MỚI (Pull to Refresh) ---
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Gọi hàm load lại user profile để cập nhật trạng thái mới nhất
+          await authController.loadUserFromSession();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Cho phép kéo ngay cả khi nội dung ngắn
+          child: Column(
+            children: [
+              _buildProfileSection(context),
+              const SizedBox(height: 24),
+              _buildMenuSection(context),
+            ],
+          ),
         ),
       ),
     );
@@ -53,34 +64,52 @@ class AccountScreen extends StatelessWidget {
 
   Widget _buildProfileSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Lấy thông tin từ AuthController để hiển thị dynamic
-    final authController = Get.find<AuthController>();
 
+    // Dùng Obx để lắng nghe thay đổi thông tin User
     return Obx(() {
       final user = authController.userProfile;
+
+      // --- LOGIC HIỂN THỊ TÊN KÈM TRẠNG THÁI ---
+      String displayName = user?.fullName ?? "User Name";
+      final status = user?.sellerStatus ?? 'none';
+
+      // Chỉ thêm hậu tố trạng thái nếu là Active hoặc Pending
+      if (status == 'active' || status == 'approved') {
+        displayName += " (Seller)";
+      } else if (status == 'pending') {
+        displayName += " (Pending)";
+      }
+      // Nếu Rejected hoặc None thì giữ nguyên tên gốc
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: isDark ? Colors.grey[900] : Colors.grey[200],
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
         ),
         child: Column(
           children: [
-             CircleAvatar(
+            CircleAvatar(
               radius: 50,
-              backgroundImage: user?.userImage != null 
-                  ? NetworkImage(user!.userImage!) 
+              backgroundImage: (user?.userImage != null && user!.userImage!.isNotEmpty)
+                  ? NetworkImage(user!.userImage!)
                   : const AssetImage('assets/images/user_avatar.jpg') as ImageProvider,
             ),
             const SizedBox(height: 16),
+
+            // Tên hiển thị đã xử lý logic ở trên
             Text(
-              user?.fullName ?? "User Name",
+              displayName,
+              textAlign: TextAlign.center,
               style: AppTextStyles.withColor(
                 AppTextStyles.h2,
                 Theme.of(context).textTheme.bodyLarge!.color!,
               ),
             ),
+
             const SizedBox(height: 8),
             Text(
               user?.email ?? "email@example.com",
@@ -95,9 +124,7 @@ class AccountScreen extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 side: BorderSide(color: isDark ? Colors.white70 : Colors.black12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
                 "Edit Profile",
@@ -114,72 +141,103 @@ class AccountScreen extends StatelessWidget {
   }
 
   Widget _buildMenuSection(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          _buildMenuItem(context, Icons.shopping_bag_outlined, "My Orders", 
-              () => Get.to(() => MyOrderScreen())),
-              
-          _buildMenuItem(context, Icons.location_on_outlined, "Shipping Addresses", 
-              () => Get.to(() => ShippingAddressScreen())),
-          
-          // NGƯỜI BÁN
+          _buildMenuItem(
+            context,
+            Icons.shopping_bag_outlined,
+            "My Orders",
+            () => Get.to(() => MyOrderScreen()),
+          ),
+          _buildMenuItem(
+            context,
+            Icons.location_on_outlined,
+            "Shipping Addresses",
+            () => Get.to(() => ShippingAddressScreen()),
+          ),
+
+          // --- LOGIC MENU NGƯỜI BÁN ---
           Obx(() {
-            final seller = sellerController.currentSeller.value;
-            
-            // Mặc định: Chưa đăng ký
-            String title = "Register as Seller";
-            IconData icon = Icons.storefront;
-            VoidCallback onTap = () => Get.to(() => SellerRegistrationScreen());
-            Color? textColor;
+            final user = authController.userProfile;
+            final status = user?.sellerStatus ?? 'none';
 
-            if (seller != null) {
-              if (seller.status == 'pending') {
-                title = "Application Pending";
-                icon = Icons.hourglass_empty;
-                textColor = Colors.orange;
-                onTap = () => Get.snackbar("Info", "Your application is under review by admin.");
-              } else if (seller.status == 'approved') {
-                title = "Switch to Seller Mode";
-                icon = Icons.store;
-                textColor = Colors.green;
-                onTap = () {
-                  sellerController.toggleSellerMode();
-                  Get.to(() => const SellerDashboardScreen());
-                };
-              } else if (seller.status == 'rejected') {
-                title = "Application Rejected";
-                icon = Icons.error_outline;
-                textColor = Colors.red;
-                onTap = () => Get.snackbar("Info", "Your application was rejected. Please contact support.");
-              }
+            switch (status) {
+              // TRƯỜNG HỢP 1: Đã là Seller (Duyệt thành công)
+              case 'active':
+              case 'approved':
+                return _buildCustomMenuItem(
+                  context,
+                  Icons.store_mall_directory,
+                  "Switch to Seller Mode",
+                  () {
+                    sellerController.toggleSellerMode();
+                    Get.to(() => const SellerDashboardScreen());
+                  },
+                  textColor: Colors.green,
+                );
+
+              // TRƯỜNG HỢP 2: Đang chờ duyệt
+              case 'pending':
+                return _buildCustomMenuItem(
+                  context,
+                  Icons.hourglass_top_rounded,
+                  "Application Pending",
+                  () => Get.snackbar(
+                    "Đang chờ duyệt",
+                    "Hồ sơ của bạn đang được Admin xem xét.",
+                    backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                    colorText: Colors.deepOrange
+                  ),
+                  textColor: Colors.orange,
+                );
+
+              // TRƯỜNG HỢP 3: Chưa đăng ký HOẶC Bị từ chối (Hiện lại nút đăng ký)
+              case 'none':
+              case 'rejected':
+              default:
+                return _buildCustomMenuItem(
+                  context,
+                  Icons.storefront,
+                  "Register as Seller",
+                  () {
+                     // Nếu bị từ chối thì hiện thông báo nhỏ nhắc nhở
+                     if (status == 'rejected') {
+                        Get.snackbar(
+                          "Thông báo",
+                          "Đơn đăng ký trước đó đã bị từ chối. Vui lòng cập nhật lại thông tin.",
+                          backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                          colorText: Colors.red
+                        );
+                     }
+                     Get.to(() => const SellerSignup());
+                  },
+                );
             }
-
-            return _buildCustomMenuItem(context, icon, title, onTap, textColor: textColor);
           }),
 
+          // Kiểm tra quyền Admin
           GetBuilder<AuthController>(
             builder: (controller) {
-              final role = controller.userProfile?.role;
-              
-              if (role == 'admin') {
+              if (controller.userProfile?.role?.trim().toLowerCase() == 'admin') {
                 return _buildMenuItem(
-                  context, 
-                  Icons.admin_panel_settings, 
-                  "Admin Dashboard", 
-                  () => Get.to(() => AdminDashboardScreen())
+                  context,
+                  Icons.admin_panel_settings,
+                  "Admin Dashboard",
+                  () => Get.to(() => AdminDashboardScreen()),
                 );
               }
-              return const SizedBox.shrink(); 
+              return const SizedBox.shrink();
             },
           ),
-          
 
-          _buildMenuItem(context, Icons.logout, "Logout", 
-              () => _showLogoutDialog(context)),
+          _buildMenuItem(
+            context,
+            Icons.logout,
+            "Logout",
+            () => _showLogoutDialog(context),
+          ),
         ],
       ),
     );
@@ -196,13 +254,6 @@ class AccountScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        // boxShadow: [
-        //   BoxShadow(https://www.facebook.com/marketplace/?ref=bookmark
-        //     color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
-        //     blurRadius: 8,
-        //     offset: const Offset(0, 2),
-        //   ),
-        // ],
       ),
       child: ListTile(
         leading: Icon(icon, color: textColor ?? Theme.of(context).primaryColor),
@@ -213,7 +264,10 @@ class AccountScreen extends StatelessWidget {
             textColor ?? Theme.of(context).textTheme.bodyLarge!.color!,
           ),
         ),
-        trailing: Icon(Icons.chevron_right, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: isDark ? Colors.grey[400] : Colors.grey[600],
+        ),
         onTap: onTap,
       ),
     );
@@ -225,23 +279,23 @@ class AccountScreen extends StatelessWidget {
       AlertDialog(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        contentPadding: const EdgeInsets.all(24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
+             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.logout_rounded, size: 32, color: isDark ? Colors.white : Colors.red),
+              child: Icon(Icons.logout, size: 32, color: isDark ? Colors.redAccent : Colors.red),
             ),
             const SizedBox(height: 24),
             Text(
               "Are you sure you want to logout?",
               textAlign: TextAlign.center,
-              style: AppTextStyles.withColor(AppTextStyles.bodyMedium, isDark ? Colors.grey[400]! : Colors.grey[600]!),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
             Row(
@@ -251,10 +305,9 @@ class AccountScreen extends StatelessWidget {
                     onPressed: () => Get.back(),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: isDark ? Colors.grey[700]! : Colors.grey[300]!),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text("Cancel", style: AppTextStyles.withColor(AppTextStyles.buttonMedium, Theme.of(context).textTheme.bodyLarge!.color!)),
+                    child: Text("Cancel", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -263,14 +316,15 @@ class AccountScreen extends StatelessWidget {
                     onPressed: () {
                       final AuthController authController = Get.find<AuthController>();
                       authController.logout();
+                      sellerController.resetState();
                       Get.offAll(() => SigninScreen());
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: Theme.of(context).primaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text("Logout", style: AppTextStyles.withColor(AppTextStyles.buttonMedium, Colors.white)),
+                    child: const Text("Logout", style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
@@ -278,7 +332,6 @@ class AccountScreen extends StatelessWidget {
           ],
         ),
       ),
-      barrierDismissible: false,
     );
   }
 }

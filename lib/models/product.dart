@@ -1,4 +1,3 @@
-
 class Products {
   final String id;
   final String name;
@@ -19,11 +18,13 @@ class Products {
   final double rating;
   final int reviewCount;
   final List<String> tags;
-  final Map<String, dynamic> specification; 
+  final Map<String, dynamic> specification;
   final DateTime? createdAt;
-  final DateTime? updatedAt; 
+  final DateTime? updatedAt;
+  // Bạn có thể thêm sellerId nếu cần quản lý logic hiển thị theo người bán
+  final String? sellerId;
 
-   Products({
+  Products({
     required this.id,
     required this.name,
     required this.category,
@@ -46,9 +47,19 @@ class Products {
     this.specification = const {},
     this.createdAt,
     this.updatedAt,
+    this.sellerId,
   });
 
   factory Products.fromSupabaseJson(Map<String, dynamic> data, String id) {
+    String? extractedBrand;
+
+    // Logic lấy Brand từ bảng sellers (quan hệ Joined)
+    // Supabase trả về dạng: { ..., "sellers": { "brand_name": "Adidas" } }
+    if (data['sellers'] != null) {
+      // Ưu tiên lấy brand_name (theo cấu trúc mới), fallback về shop_name nếu chưa đổi tên cột
+      extractedBrand = data['sellers']['brand_name'] ?? data['sellers']['shop_name'];
+    }
+
     return Products(
       id: id,
       name: data['name'] ?? '',
@@ -56,11 +67,13 @@ class Products {
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
       oldPrice: (data['old_price'] as num?)?.toDouble(),
       currency: data['currency'] ?? "VND",
-      images: List<String>.from(data['images'] ?? []), 
-      primaryImage: data['primary_image'] ?? (data['images']?.isNotEmpty == true ? data['images'][0] : ""),
+      images: List<String>.from(data['images'] ?? []),
+      // Lấy ảnh đầu tiên làm primary nếu primary_image null
+      primaryImage: data['primary_image'] ?? (data['images'] != null && (data['images'] as List).isNotEmpty ? data['images'][0] : ""),
       isFavourite: data['is_favourite'] ?? false,
       description: data['description'] ?? '',
-      brand: data['brand'],
+      // Ưu tiên lấy từ bảng seller, nếu không có thì lấy cột brand cũ (nếu còn), hoặc để mặc định
+      brand: extractedBrand ?? data['brand'] ?? "Unknown Brand",
       sku: data['sku'],
       stock: data['stock'] ?? 0,
       isActive: data['is_active'] ?? true,
@@ -69,10 +82,17 @@ class Products {
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: data['review_count'] ?? 0,
       tags: List<String>.from(data['tags'] ?? []),
-      specification: Map<String, dynamic>.from(data['specification'] ?? {}), 
-      createdAt: data['created_at'] != null ? DateTime.parse(data['created_at']) : null,
-      updatedAt: data['updated_at'] != null ? DateTime.parse(data['updated_at']) : null,
+      specification: data['specification'] != null ? Map<String, dynamic>.from(data['specification']) : {},
+      createdAt: data['created_at'] != null ? DateTime.tryParse(data['created_at']) : null,
+      updatedAt: data['updated_at'] != null ? DateTime.tryParse(data['updated_at']) : null,
+      sellerId: data['seller_id'],
     );
+  }
+
+  // Dùng để tạo object mẫu khi cần update UI ngay lập tức hoặc test
+  factory Products.fromJson(Map<String, dynamic> json) {
+     // Nếu json có id thì dùng, không thì dùng chuỗi rỗng hoặc logic khác
+     return Products.fromSupabaseJson(json, json['id']?.toString() ?? '');
   }
 
   Map<String, dynamic> toJson() {
@@ -85,7 +105,6 @@ class Products {
       'is_favourite': isFavourite,
       'description': description,
       'images': images,
-      'brand': brand,
       'primary_image': primaryImage,
       'sku': sku,
       'stock': stock,
@@ -95,17 +114,22 @@ class Products {
       'rating': rating,
       'review_count': reviewCount,
       'tags': tags,
-      'specification': specification, 
-      
+      'specification': specification,
+      // Không gửi brand lên vì brand được tự động lấy theo Seller ID trong DB
     };
   }
-  String get imageUrl => primaryImage;
+
+  // Getters hỗ trợ hiển thị UI
+  String get imageUrl => primaryImage.isNotEmpty ? primaryImage : (images.isNotEmpty ? images[0] : '');
+
   bool get hasDiscount => oldPrice != null && oldPrice! > price;
-  int get discountPercentage{
-    if(!hasDiscount)return 0;
-    return(((oldPrice! - price) / oldPrice!) * 100).round();
+
+  int get discountPercentage {
+    if (!hasDiscount) return 0;
+    return (((oldPrice! - price) / oldPrice!) * 100).round();
   }
+
   bool get isInstock => stock > 0;
-  String? get formattedOldPrice => oldPrice != null ? "\$${oldPrice!.toStringAsFixed(3)}":null;
-  final List<Products> products =[];
+
+  String? get formattedOldPrice => oldPrice != null ? "\$${oldPrice!.toStringAsFixed(3)}" : null;
 }

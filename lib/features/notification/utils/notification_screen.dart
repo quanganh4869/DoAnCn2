@@ -18,9 +18,9 @@ class NotificationScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(context),
           icon: Icon(
-            Icons.arrow_back_ios,
+            Icons.arrow_back,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -40,18 +40,23 @@ class NotificationScreen extends StatelessWidget {
                 AppTextStyles.bodyMedium,
                 Theme.of(context).primaryColor,
               ),
-            )
+            ),
           ),
         ],
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16.0),
         itemCount: notifications.length,
-        itemBuilder: (context, index) => _buildNotificationCard(context, notifications[index]),
+        itemBuilder: (context, index) =>
+            _buildNotificationCard(context, notifications[index]),
       ),
     );
   }
-  Widget _buildNotificationCard(BuildContext context, NotificationItem notification) {
+
+  Widget _buildNotificationCard(
+    BuildContext context,
+    NotificationItem notification,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
@@ -67,15 +72,18 @@ class NotificationScreen extends StatelessWidget {
                 : Colors.grey.withOpacity(0.1),
             blurRadius: 4.0,
           ),
-        ]
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16.0),
         leading: Container(
           padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            color: NotificationUtils.getIconBackgroundColor(context, notification.type),
-            shape: BoxShape.circle
+            color: NotificationUtils.getIconBackgroundColor(
+              context,
+              notification.type,
+            ),
+            shape: BoxShape.circle,
           ),
           child: Icon(
             NotificationUtils.getNotificationIcon(notification.type),
@@ -99,10 +107,10 @@ class NotificationScreen extends StatelessWidget {
                 AppTextStyles.bodySmall,
                 isDark ? Colors.grey[400]! : Colors.grey[600]!,
               ),
-            ),    
+            ),
           ],
         ),
       ),
     );
-  }  
+  }
 }

@@ -1,67 +1,189 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/seller_dasboard/view/order_seller/manage_orders_screen.dart';
+import 'package:ecomerceapp/seller_dasboard/view/product_seller/manage_products_screen.dart';
 
 class SellerDashboardScreen extends StatelessWidget {
   const SellerDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<SellerController>();
+    final authController = Get.find<AuthController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(controller.currentSeller.value?.shopName ?? "Seller Dashboard")),
+        title: const Text("Kênh Người Bán"),
+        centerTitle: true,
         actions: [
-          // Nút chuyển về chế độ người mua
-          TextButton.icon(
-            onPressed: () {
-              controller.toggleSellerMode();
-              Get.back(); // Quay lại AccountScreen hoặc MainScreen
-            },
-            icon: const Icon(Icons.person_outline),
-            label: const Text("Switch to Buyer"),
-          )
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
+          ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             _buildDashboardCard(context, Icons.add_box, "Add Product", Colors.blue, () {}),
-             _buildDashboardCard(context, Icons.list_alt, "My Products", Colors.orange, () {}),
-             _buildDashboardCard(context, Icons.attach_money, "Earnings", Colors.green, () {}),
-             _buildDashboardCard(context, Icons.local_shipping, "Orders", Colors.purple, () {}),
+            // Header chào mừng
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade800, Colors.blue.shade500],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white,
+                    backgroundImage: NetworkImage(
+                      authController.userProfile?.userImage ??
+                      "https://cdn-icons-png.flaticon.com/512/1995/1995574.png"
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        authController.userProfile?.storeName ?? "My Shop",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Chúc bạn buôn may bán đắt!",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            Text("Quản lý", style: AppTextStyles.h3),
+            const SizedBox(height: 16),
+
+            // Grid Menu
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.3,
+              children: [
+                _buildDashboardItem(
+                  context,
+                  icon: Icons.inventory_2_outlined,
+                  label: "Sản phẩm",
+                  color: Colors.orange,
+                  onTap: () {
+                    Get.to(() => ManageProductsScreen());
+                  },
+                ),
+                _buildDashboardItem(
+                  context,
+                  icon: Icons.list_alt_rounded,
+                  label: "Đơn hàng",
+                  color: Colors.green,
+                  onTap: () {
+                    Get.to(() => ManageOrdersScreen());
+                  },
+                ),
+                _buildDashboardItem(
+                  context,
+                  icon: Icons.analytics_outlined,
+                  label: "Thống kê",
+                  color: Colors.purple,
+                  onTap: () {},
+                ),
+                _buildDashboardItem(
+                  context,
+                  icon: Icons.settings_outlined,
+                  label: "Cài đặt Shop",
+                  color: Colors.grey,
+                  onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.logout),
+                label: const Text("Quay lại chế độ Mua hàng"),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: isDark ? Colors.white54 : Colors.grey),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDashboardCard(BuildContext context, IconData icon, String title, Color color, VoidCallback onTap) {
-    return GestureDetector(
+  Widget _buildDashboardItem(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: isDark ? Colors.grey[800] : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0,2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: color.withOpacity(0.2),
-              child: Icon(icon, size: 30, color: color),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 30),
             ),
             const SizedBox(height: 12),
-            Text(title, style: AppTextStyles.h3),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
           ],
         ),
       ),

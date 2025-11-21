@@ -15,9 +15,9 @@ class EditProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(context),
           icon: Icon(
-            Icons.arrow_back_ios,
+            Icons.arrow_back,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -28,18 +28,16 @@ class EditProfileScreen extends StatelessWidget {
             isDark ? Colors.white : Colors.black,
           ),
         ),
-        
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-          SizedBox(height: 24),
-          ProfileImage(),
-          SizedBox(height: 32),
-          ProfileForm(),
+            SizedBox(height: 24),
+            ProfileImage(),
+            SizedBox(height: 32),
+            ProfileForm(),
           ],
         ),
-
       ),
     );
   }

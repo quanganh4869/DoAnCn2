@@ -5,14 +5,6 @@ class AuthSupabaseServices {
   final SupabaseClient _supabase = Supabase.instance.client;
   final String _tableName = 'users'; // Tên bảng người dùng trong Supabase
 
-  // Constructor (không cần thiết nếu chỉ dùng instance, nhưng nên có để rõ ràng)
-  // AuthSupabaseServices(); 
-
-  // --- CREATE ---
-  /// Thêm UserProfile mới vào bảng 'users'.
-  ///
-  /// Hàm này thường được gọi ngay sau khi đăng ký (signup) thành công
-  /// để tạo bản ghi user profile tương ứng với auth user.
   Future<void> createUserProfile(UserProfile profile) async {
     try {
       await _supabase.from(_tableName).insert(profile.toJson());
@@ -22,10 +14,6 @@ class AuthSupabaseServices {
     }
   }
 
-  // --- READ ---
-  /// Lấy UserProfile dựa trên ID.
-  ///
-  /// Hàm này hữu ích để load thông tin người dùng từ DB sau khi đăng nhập.
   Future<UserProfile?> getUserProfileById(String userId) async {
     try {
       final data = await _supabase
@@ -78,7 +66,7 @@ class AuthSupabaseServices {
       rethrow;
     }
   }
-  
+
   // Hàm cập nhật trạng thái isActive (thường dùng cho admin)
   Future<void> updateActiveStatus({
     required String userId,
@@ -104,7 +92,7 @@ class AuthSupabaseServices {
     try {
       // Xóa bản ghi trong bảng 'users'
       await _supabase.from(_tableName).delete().eq('id', userId);
-      
+
       // Bạn CŨNG CẦN XÓA TÀI KHOẢN AUTH NẾU MUỐN
       // (thường dùng API keys ở backend hoặc chỉ cho admin làm)
       // await _supabase.auth.admin.deleteUser(userId); // Dùng cho Admin

@@ -24,8 +24,8 @@ class ShippingAddressScreen extends StatelessWidget {
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: isDark ? Colors.white : Colors.black),
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
         ),
       ),
       body: Obx(() {

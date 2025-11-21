@@ -5,11 +5,19 @@ class UserProfile {
   final String? phone;
   final String? gender;
   final String? userImage;
-  final String? role;
-  final bool? isActive; 
-  final DateTime createdAt;
+  final String? role; // 'user' hoặc 'admin'
+  final String? createdAt;
+  final bool? isActive;
 
-  const UserProfile({
+  // --- THÔNG TIN SELLER (ĐÃ GỘP) ---
+  final String? storeName;
+  final String? storeDescription;
+  final String? businessEmail; // Mới
+  final String? shopPhone;     // Mới
+  final String? shopAddress;   // Mới
+  final String? sellerStatus;  // 'pending', 'active', 'rejected', 'none'
+
+  UserProfile({
     required this.id,
     this.fullName,
     this.email,
@@ -17,8 +25,14 @@ class UserProfile {
     this.gender,
     this.userImage,
     this.role,
-    this.isActive, 
-    required this.createdAt,
+    this.createdAt,
+    this.isActive,
+    this.storeName,
+    this.storeDescription,
+    this.businessEmail,
+    this.shopPhone,
+    this.shopAddress,
+    this.sellerStatus,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -29,9 +43,16 @@ class UserProfile {
       phone: json['phone'],
       gender: json['gender'],
       userImage: json['user_image'],
-      role: json['role'], 
-      isActive: (json['is_active'] ?? json['isActive'] ?? true) as bool,
-      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      role: json['role'],
+      createdAt: json['created_at'],
+      isActive: json['is_active'],
+      // Map các trường seller
+      storeName: json['shop_name'], // Lưu ý: DB là shop_name
+      storeDescription: json['shop_description'],
+      businessEmail: json['business_email'],
+      shopPhone: json['shop_phone'],
+      shopAddress: json['shop_address'],
+      sellerStatus: json['seller_status'] ?? 'none',
     );
   }
 
@@ -43,9 +64,16 @@ class UserProfile {
       'phone': phone,
       'gender': gender,
       'user_image': userImage,
-      'role': role, 
-      'is_active': isActive, // <--- THÊM
-      'created_at': createdAt.toIso8601String(),
+      'role': role,
+      'created_at': createdAt,
+      'is_active': isActive,
+      // Lưu các trường seller
+      'shop_name': storeName,
+      'shop_description': storeDescription,
+      'business_email': businessEmail,
+      'shop_phone': shopPhone,
+      'shop_address': shopAddress,
+      'seller_status': sellerStatus,
     };
   }
 
@@ -57,8 +85,14 @@ class UserProfile {
     String? gender,
     String? userImage,
     String? role,
-    bool? isActive, 
-    DateTime? createdAt,
+    String? createdAt,
+    bool? isActive,
+    String? storeName,
+    String? storeDescription,
+    String? businessEmail,
+    String? shopPhone,
+    String? shopAddress,
+    String? sellerStatus,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -68,8 +102,14 @@ class UserProfile {
       gender: gender ?? this.gender,
       userImage: userImage ?? this.userImage,
       role: role ?? this.role,
-      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
+      isActive: isActive ?? this.isActive,
+      storeName: storeName ?? this.storeName,
+      storeDescription: storeDescription ?? this.storeDescription,
+      businessEmail: businessEmail ?? this.businessEmail,
+      shopPhone: shopPhone ?? this.shopPhone,
+      shopAddress: shopAddress ?? this.shopAddress,
+      sellerStatus: sellerStatus ?? this.sellerStatus,
     );
   }
 }

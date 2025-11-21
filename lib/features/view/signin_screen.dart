@@ -2,14 +2,14 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
-import 'package:ecomerceapp/features/view/main_screen.dart'; 
+import 'package:ecomerceapp/features/view/main_screen.dart';
 import 'package:ecomerceapp/features/view/signup_screen.dart';
-import 'package:ecomerceapp/admin_dashboard/view/admin_dasboard.dart';
 import 'package:ecomerceapp/features/view/forgotpassword_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
+import 'package:ecomerceapp/admin_dashboard/view/dashboard_admin/admin_dasboard.dart';
 
 class SigninScreen extends StatelessWidget {
-  final String? email; 
+  final String? email;
   SigninScreen({super.key, this.email});
 
   final TextEditingController _emailController = TextEditingController();
@@ -32,11 +32,11 @@ class SigninScreen extends StatelessWidget {
       print("Is Admin? ${authController.isAdmin}");
 
       if (authController.isAdmin) {
-        Get.offAll(() => AdminDashboardScreen()); 
+        Get.offAll(() => AdminDashboardScreen());
       } else {
         Get.offAll(() => const MainScreen());
       }
-    } 
+    }
   }
   @override
   Widget build(BuildContext context) {

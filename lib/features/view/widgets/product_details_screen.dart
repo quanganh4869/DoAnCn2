@@ -1,14 +1,14 @@
 import 'dart:ui';
-import 'package:get/get.dart'; 
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
-import 'package:ecomerceapp/supabase/cart_supabase_services.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
+import 'package:ecomerceapp/controller/cart_controller.dart'; // Import CartController
+import 'package:ecomerceapp/features/checkout/screens/checkout_screen.dart'; // Import màn hình checkout
 
 class ProductDetailsScreen extends StatefulWidget {
   final Products product;
@@ -20,10 +20,15 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   String? _selectedSize;
-  String? _selectedColor;
-  bool _isAdding = false;
+  String?
+  _selectedColor; // Biến này chưa dùng trong UI, nhưng giữ lại cho logic
 
-  // Hàm hỗ trợ lấy size
+  // Inject Controllers
+  final CartController cartController = Get.find<CartController>();
+  // Sử dụng Get.put để đảm bảo controller tồn tại nếu chưa được khởi tạo ở đâu
+  final WishlistController wishlistController = Get.put(WishlistController());
+
+  // Hàm hỗ trợ lấy size từ JSON specification
   List<String> _getAvailableSizes() {
     if (widget.product.specification.containsKey("sizes")) {
       final sizes = widget.product.specification["sizes"];
@@ -60,11 +65,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () => _shareProduct(
-              context,
-              widget.product.name,
-              widget.product.description,
-            ),
+            onPressed: () => _shareProduct(context),
             icon: Icon(
               Icons.share,
               color: isDark ? Colors.white : Colors.black,
@@ -82,17 +83,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Image.network(
-                    widget.product.primaryImage.isNotEmpty
-                        ? widget.product.primaryImage
-                        : 'https://via.placeholder.com/400',
+                    widget
+                        .product
+                        .imageUrl, // Dùng getter imageUrl đã có trong Model
                     width: double.infinity,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[300],
                         child: const Center(
-                          child: Icon(Icons.image_not_supported,
-                              size: 50, color: Colors.grey),
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
                         ),
                       );
                     },
@@ -102,20 +106,27 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   top: screenWidth * 0.04,
                   right: screenWidth * 0.04,
                   child: GetBuilder<WishlistController>(
-                    id: "Wishlist_${widget.product.id}",
+                    init: wishlistController, // Init nếu cần
+                    id: "Wishlist_${widget.product.id}", // ID để update cục bộ
                     builder: (controller) {
-                      final isWishlist =
-                          controller.isProductInWishList(widget.product.id);
-                      return IconButton(
-                        onPressed: () async {
-                          await controller.toggleWishlist(widget.product);
-                          controller.update(["Wishlist_${widget.product.id}"]);
-                        },
-                        icon: Icon(
-                          isWishlist ? Icons.favorite : Icons.favorite_border,
-                          color: isWishlist
-                              ? Theme.of(context).primaryColor
-                              : (isDark ? Colors.white : Colors.black),
+                      final isWishlist = controller.isProductInWishList(
+                        widget.product.id,
+                      );
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          onPressed: () async {
+                            await controller.toggleWishlist(widget.product);
+                            // Không cần gọi controller.update ở đây vì toggleWishlist thường đã gọi rồi,
+                            // nhưng giữ lại nếu logic của bạn yêu cầu manual update.
+                          },
+                          icon: Icon(
+                            isWishlist ? Icons.favorite : Icons.favorite_border,
+                            color: isWishlist ? Colors.red : Colors.black,
+                          ),
                         ),
                       );
                     },
@@ -150,38 +161,40 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             "${priceFormatter.format(widget.product.price)} VND",
                             style: AppTextStyles.withColor(
                               AppTextStyles.h2,
-                              Theme.of(context).textTheme.headlineMedium!.color!,
+                              Theme.of(context).primaryColor,
                             ).copyWith(fontWeight: FontWeight.bold),
                           ),
-                          if (widget.product.oldPrice != null &&
-                              widget.product.oldPrice! >
-                                  widget.product.price) ...[
+                          if (widget.product.hasDiscount) ...[
                             SizedBox(height: screenHeight * 0.005),
                             Row(
                               children: [
                                 Text(
                                   "${priceFormatter.format(widget.product.oldPrice)} VND",
-                                  style: AppTextStyles.withColor(
-                                    AppTextStyles.bodySmall,
-                                    isDark ? Colors.grey[400]! : Colors.grey[600]!,
-                                  ).copyWith(
+                                  style: TextStyle(
                                     decoration: TextDecoration.lineThrough,
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
+                                    fontSize: 12,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.red,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    "${((widget.product.oldPrice! - widget.product.price) / widget.product.oldPrice! * 100).round()}% OFF",
+                                    "-${widget.product.discountPercentage}%",
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold),
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -192,26 +205,38 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     ],
                   ),
                   SizedBox(height: screenHeight * 0.01),
-                  
+
                   // Category & Brand
                   Row(
                     children: [
-                      Text(
-                        widget.product.category,
-                        style: AppTextStyles.withColor(
-                          AppTextStyles.bodyMedium,
-                          isDark ? Colors.grey[400]! : Colors.grey[600]!,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          widget.product.category,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
                         ),
                       ),
                       if (widget.product.brand != null) ...[
                         const SizedBox(width: 8),
                         Text("|", style: TextStyle(color: Colors.grey)),
                         const SizedBox(width: 8),
+                        Icon(Icons.store, size: 16, color: Colors.blue),
+                        const SizedBox(width: 4),
                         Text(
                           widget.product.brand!,
-                          style: AppTextStyles.withColor(
-                            AppTextStyles.bodyMedium,
-                            isDark ? Colors.grey[400]! : Colors.grey[600]!,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
                           ),
                         ),
                       ],
@@ -219,40 +244,33 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
 
                   // Stock Status
-                  if (widget.product.stock <= 5 && widget.product.stock > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        "Only ${widget.product.stock} left in stock",
-                        style: AppTextStyles.withColor(
-                            AppTextStyles.bodySmall, Colors.orange),
-                      ),
-                    )
-                  else if (widget.product.stock == 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        "Out of stock",
-                        style: AppTextStyles.withColor(
-                            AppTextStyles.bodySmall, Colors.red),
-                      ),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: widget.product.isInstock
+                        ? (widget.product.stock <= 5
+                              ? Text(
+                                  "Only ${widget.product.stock} left in stock",
+                                  style: const TextStyle(color: Colors.orange),
+                                )
+                              : const Text(
+                                  "In Stock",
+                                  style: TextStyle(color: Colors.green),
+                                ))
+                        : const Text(
+                            "Out of Stock",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                  ),
 
                   SizedBox(height: screenHeight * 0.02),
 
-                  // Size Selector
                   if (_getAvailableSizes().isNotEmpty) ...[
-                    Text(
-                      "Select Size",
-                      style: AppTextStyles.withColor(
-                        AppTextStyles.labelMedium,
-                        Theme.of(context).textTheme.bodyLarge!.color!,
-                      ),
-                    ),
+                    Text("Select Size", style: AppTextStyles.labelMedium),
                     SizedBox(height: screenHeight * 0.01),
                     SizeSelector(
                       sizes: _getAvailableSizes(),
-                      // Thêm logic để highlight size đã chọn
+                      selectedSize:
+                          _selectedSize, // Cần truyền size đang chọn vào để highlight
                       onSizeSelected: (size) {
                         setState(() {
                           _selectedSize = size;
@@ -260,26 +278,25 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       },
                     ),
                     if (_selectedSize == null)
-                       Padding(
-                         padding: const EdgeInsets.only(top: 8.0),
-                         child: Text("Please select a size", style: TextStyle(color: Colors.red[300], fontSize: 12)),
-                       ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          "Please select a size",
+                          style: TextStyle(
+                            color: Colors.red[300],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                   ],
 
                   SizedBox(height: screenHeight * 0.02),
-                  Text(
-                    "Description",
-                    style: AppTextStyles.withColor(
-                      AppTextStyles.labelMedium,
-                      Theme.of(context).textTheme.bodyLarge!.color!,
-                    ),
-                  ),
+                  Text("Description", style: AppTextStyles.labelMedium),
                   SizedBox(height: screenHeight * 0.01),
                   Text(
                     widget.product.description,
-                    style: AppTextStyles.withColor(
-                      AppTextStyles.bodyLarge,
-                      Theme.of(context).textTheme.headlineSmall!.color!,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: isDark ? Colors.grey[300] : Colors.grey[800],
                     ),
                   ),
                 ],
@@ -288,56 +305,69 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ],
         ),
       ),
+
+      // --- BOTTOM BAR ---
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(screenWidth * 0.04),
           child: Row(
             children: [
+              // ADD TO CART
               Expanded(
-                child: OutlinedButton(
-                  onPressed: _isAdding || widget.product.stock == 0
-                      ? null
-                      : _handleAddToCart,
-                  style: OutlinedButton.styleFrom(
-                    padding:
-                        EdgeInsets.symmetric(vertical: screenHeight * 0.02),
-                    side: BorderSide(
-                        color: isDark ? Colors.white70 : Colors.black12),
+                child: Obx(
+                  () => OutlinedButton(
+                    onPressed:
+                        (cartController.isLoading.value ||
+                            !widget.product.isInstock)
+                        ? null
+                        : () => _handleAddToCart(isBuyNow: false),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        vertical: screenHeight * 0.02,
+                      ),
+                      side: BorderSide(
+                        color: isDark ? Colors.white70 : Colors.black12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: cartController.isLoading.value
+                        ? SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            "Add to Cart",
+                            style: AppTextStyles.buttonMedium,
+                          ),
                   ),
-                  child: _isAdding
-                      ? SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(
-                                Theme.of(context).primaryColor),
-                          ),
-                        )
-                      : Text(
-                          "Add to Cart",
-                          style: AppTextStyles.withColor(
-                            AppTextStyles.buttonMedium,
-                            Theme.of(context).textTheme.bodyLarge!.color!,
-                          ),
-                        ),
                 ),
               ),
               SizedBox(width: screenWidth * 0.04),
+
+              // BUY NOW
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Logic Buy Now (thường là thêm vào cart rồi chuyển sang checkout)
-                  },
+                  onPressed: !widget.product.isInstock
+                      ? null
+                      : () => _handleAddToCart(isBuyNow: true),
                   style: ElevatedButton.styleFrom(
-                    padding:
-                        EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenHeight * 0.02,
+                    ),
                     backgroundColor: Theme.of(context).primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: Text(
+                  child: const Text(
                     "Buy Now",
-                    style: AppTextStyles.withColor(
-                        AppTextStyles.buttonMedium, Colors.white),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -348,12 +378,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Future<void> _shareProduct(BuildContext context, String productName, String description) async {
+  Future<void> _shareProduct(BuildContext context) async {
     final box = context.findRenderObject() as RenderBox?;
     try {
       await Share.share(
-        "$description\n\nCheck out $productName!",
-        subject: productName,
+        "${widget.product.name}\n${widget.product.description}\nCheck it out!",
+        subject: widget.product.name,
         sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
       );
     } catch (e) {
@@ -361,64 +391,35 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
-  Future<void> _handleAddToCart() async {
-    // Validate Size
+  // Logic Thêm vào giỏ (Sửa đổi quan trọng)
+  Future<void> _handleAddToCart({required bool isBuyNow}) async {
+    // 1. Validate Size
     if (_getAvailableSizes().isNotEmpty && _selectedSize == null) {
       Get.snackbar(
-        "Select Size", 
+        "Select Size",
         "Please select a size to continue",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
+        margin: const EdgeInsets.all(16),
       );
       return;
     }
 
-    setState(() {
-      _isAdding = true;
-    });
+    // 2. Gọi CartController (Không gọi Service trực tiếp)
+    // Controller sẽ tự handle loading state và show snackbar nếu thành công
+    final success = await cartController.addToCart(
+      product: widget.product,
+      quantity: 1,
+      selectedSize: _selectedSize,
+      selectedColor: _selectedColor,
+      showNotification:
+          !isBuyNow, // Nếu mua ngay thì ko cần hiện popup "Added to cart"
+    );
 
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        Get.snackbar("Login Required", "Please login to add items to cart.");
-        return;
-      }
-
-      final success = await CartSupabaseServices.addToCart(
-        userId: user.id,
-        product: widget.product,
-        selectedSize: _selectedSize,
-        selectedColor: _selectedColor,
-        quantity: 1,
-      );
-
-      if (success == true) {
-        Get.snackbar(
-          "Success", 
-          "Added to cart successfully",
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
-      } else {
-        Get.snackbar(
-          "Error", 
-          "Failed to add to cart",
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red,
-        );
-      }
-    } catch (e) {
-      debugPrint("Error adding to cart: $e");
-      Get.snackbar("Error", "An unexpected error occurred");
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isAdding = false;
-        });
-      }
+    // 3. Xử lý Buy Now
+    if (success && isBuyNow) {
+      Get.to(() => CheckoutScreen());
     }
   }
 }

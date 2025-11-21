@@ -145,7 +145,7 @@ class OrderSummaryCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "\$${priceFormatter.format(item.product?.price ?? 0)}",
+                      "${priceFormatter.format(item.product?.price ?? 0)} VND",
                       style: AppTextStyles.withColor(
                         AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
                         Theme.of(context).primaryColor,
