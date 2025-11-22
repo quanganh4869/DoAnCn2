@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/view/product_seller/add_product_screen.dart';
 
@@ -11,8 +12,8 @@ class ManageProductsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng SellerController đã gộp (chứa cả myProducts và logic xóa)
     final controller = Get.find<SellerController>();
+    final authController = Get.find<AuthController>();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormat = NumberFormat("#,###", "vi_VN");
@@ -23,7 +24,23 @@ class ManageProductsScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      // Nút chuyển sang trang Thêm sản phẩm (Không truyền tham số product)
+      appBar: AppBar(
+        title: Text(
+          authController.userProfile?.storeName ?? "My Shop",
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Get.to(() => const AddProductScreen());
@@ -42,27 +59,59 @@ class ManageProductsScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(height: 16),
-                const Text("No products yet. Start selling!", style: TextStyle(color: Colors.grey)),
+                const Text(
+                  "No products yet. Start selling!",
+                  style: TextStyle(color: Colors.grey),
+                ),
               ],
             ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.myProducts.length,
-          itemBuilder: (context, index) {
-            final product = controller.myProducts[index];
-            return _buildProductItem(context, product, controller, currencyFormat);
-          },
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                "Danh sách sản phẩm",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: controller.myProducts.length,
+                itemBuilder: (context, index) {
+                  final product = controller.myProducts[index];
+                  return _buildProductItem(
+                    context,
+                    product,
+                    controller,
+                    currencyFormat,
+                  );
+                },
+              ),
+            ),
+          ],
         );
       }),
     );
   }
 
-  Widget _buildProductItem(BuildContext context, Products product, SellerController controller, NumberFormat format) {
+  Widget _buildProductItem(
+    BuildContext context,
+    Products product,
+    SellerController controller,
+    NumberFormat format,
+  ) {
     // Bọc toàn bộ thẻ sản phẩm bằng GestureDetector để bấm vào là sửa
     return GestureDetector(
       onTap: () {
@@ -75,7 +124,11 @@ class ManageProductsScreen extends StatelessWidget {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -88,8 +141,11 @@ class ManageProductsScreen extends StatelessWidget {
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
                 image: (product.images != null && product.images.isNotEmpty)
-                  ? DecorationImage(image: NetworkImage(product.images[0]), fit: BoxFit.cover)
-                  : null,
+                    ? DecorationImage(
+                        image: NetworkImage(product.images[0]),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
               child: (product.images == null || product.images.isEmpty)
                   ? const Icon(Icons.image, color: Colors.grey)
@@ -111,12 +167,15 @@ class ManageProductsScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     "Stock: ${product.stock ?? 0} | Category: ${product.category}",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12)
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "${format.format(product.price)} VND",
-                    style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -135,17 +194,22 @@ class ManageProductsScreen extends StatelessWidget {
                 // Nút Xóa
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDelete(context, product.id, controller),
+                  onPressed: () =>
+                      _confirmDelete(context, product.id, controller),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context, String productId, SellerController controller) {
+  void _confirmDelete(
+    BuildContext context,
+    String productId,
+    SellerController controller,
+  ) {
     Get.dialog(
       AlertDialog(
         title: const Text("Delete Product"),
@@ -157,10 +221,10 @@ class ManageProductsScreen extends StatelessWidget {
               Get.back();
               controller.deleteProduct(productId);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red))
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
-      )
+      ),
     );
   }
 }

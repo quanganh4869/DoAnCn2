@@ -8,11 +8,13 @@ import 'package:ecomerceapp/features/myorders/view/my_order_screen.dart';
 class OrderConfirmationScreen extends StatelessWidget {
   final String orderNumber;
   final double totalAmount;
+  final bool isSuccess;
 
   const OrderConfirmationScreen({
     super.key,
     required this.orderNumber,
     required this.totalAmount,
+    this.isSuccess = true
   });
 
   @override

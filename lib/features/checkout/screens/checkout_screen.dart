@@ -7,72 +7,83 @@ import 'package:ecomerceapp/features/checkout/screens/widgets/order_summary_card
 import 'package:ecomerceapp/features/checkout/screens/widgets/checkout_bottom_bar.dart';
 import 'package:ecomerceapp/features/checkout/screens/widgets/payment_method_card.dart';
 import 'package:ecomerceapp/features/checkout/screens/widgets/checkout_address_card.dart';
-import 'package:ecomerceapp/features/order_confirmation/screens/order_confirmation_screen.dart';
-// Import Controllers
-// Import Screens & Widgets
+import 'package:ecomerceapp/controller/order_controller.dart'; // <--- 1. Import OrderController
 
 class CheckoutScreen extends StatelessWidget {
   CheckoutScreen({super.key});
 
   final CartController cartController = Get.find<CartController>();
   final AddressController addressController = Get.put(AddressController());
+  final OrderController orderController = Get.put(OrderController()); // <--- 2. Khởi tạo Controller
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
-        ),
-        title: Text(
-          "Checkout",
-          style: AppTextStyles.withColor(
-            AppTextStyles.h3,
-            isDark ? Colors.white : Colors.black,
+    // Sử dụng Stack để hiển thị Loading đè lên màn hình khi đang xử lý
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+            ),
+            title: Text(
+              "Checkout",
+              style: AppTextStyles.withColor(
+                AppTextStyles.h3,
+                isDark ? Colors.white : Colors.black,
+              ),
+            ),
+            centerTitle: true,
           ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle(context, "Shipping Address"),
+                const SizedBox(height: 16),
+                CheckoutAddressCard(),
+                const SizedBox(height: 24),
+
+                _buildSectionTitle(context, "Payment Method"),
+                const SizedBox(height: 16),
+                const PaymentMethodCard(),
+                const SizedBox(height: 24),
+
+                _buildSectionTitle(context, "Order Summary"),
+                const SizedBox(height: 16),
+                OrderSummaryCard(),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+
+          // Bottom Bar
+          bottomNavigationBar: Obx(() => CheckoutBottomBar(
+            totalAmount: cartController.total.value,
+            // Khi đang loading thì không cho bấm nút (hoặc bạn có thể truyền biến isLoading vào widget này nếu nó hỗ trợ)
+            onPlaceOrder: orderController.isLoading.value
+                ? () {} // Nếu đang load thì disable nút bấm
+                : () => _handlePlaceOrder(),
+          )),
         ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Shipping Address
-            _buildSectionTitle(context, "Shipping Address"),
-            const SizedBox(height: 16),
-            CheckoutAddressCard(), // Đã rewrite
 
-            const SizedBox(height: 24),
-
-            // 2. Payment Method
-            _buildSectionTitle(context, "Payment Method"),
-            const SizedBox(height: 16),
-            const PaymentMethodCard(), // Đã rewrite
-
-            const SizedBox(height: 24),
-
-            // 3. Order Summary (Tổng hợp tiền)
-            _buildSectionTitle(context, "Order Summary"),
-            const SizedBox(height: 16),
-            OrderSummaryCard(), // Đã rewrite
-
-            // Có thể thêm list item rút gọn ở đây nếu muốn
-            // ...
-
-            const SizedBox(height: 40), // Padding bottom tránh bị che
-          ],
-        ),
-      ),
-
-      // 4. Bottom Bar
-      bottomNavigationBar: Obx(() => CheckoutBottomBar(
-        totalAmount: cartController.total.value,
-        onPlaceOrder: () => _handlePlaceOrder(),
-      )),
+        // <--- 3. Màn hình Loading Overlay
+        Obx(() {
+          if (orderController.isLoading.value) {
+            return Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      ],
     );
   }
 
@@ -88,7 +99,7 @@ class CheckoutScreen extends StatelessWidget {
   }
 
   void _handlePlaceOrder() {
-    // Kiểm tra xem user đã có địa chỉ chưa
+    // Validation Address
     if (addressController.addresses.isEmpty) {
       Get.snackbar(
         "Missing Address",
@@ -100,7 +111,7 @@ class CheckoutScreen extends StatelessWidget {
       return;
     }
 
-    // Kiểm tra giỏ hàng có trống không
+    // Validation Cart
     if (cartController.cartItems.isEmpty) {
       Get.snackbar(
         "Empty Cart",
@@ -111,13 +122,6 @@ class CheckoutScreen extends StatelessWidget {
       return;
     }
 
-    // Tạo mã đơn hàng
-    final orderNumber = "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
-
-    // Chuyển sang trang xác nhận
-    Get.to(() => OrderConfirmationScreen(
-      orderNumber: orderNumber,
-      totalAmount: cartController.total.value,
-    ));
+    orderController.placeOrder();
   }
 }

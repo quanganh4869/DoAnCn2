@@ -1,9 +1,11 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/controller/address_controller.dart';
 import 'package:ecomerceapp/supabase/order_supabase_services.dart';
+import 'package:ecomerceapp/features/order_confirmation/screens/order_confirmation_screen.dart';
 
 
 class OrderController extends GetxController {
@@ -55,57 +57,73 @@ class OrderController extends GetxController {
     final cartController = Get.find<CartController>();
     final addressController = Get.find<AddressController>();
 
-    // 1. Validation cơ bản
+    // 1. Validation (Giữ nguyên)
     if (userId == null) {
       Get.snackbar("Error", "Please login to place order");
       return;
     }
 
-    if (cartController.cartItems.isEmpty) {
-      Get.snackbar("Error", "Cart is empty");
-      return;
-    }
-
-    if (addressController.addresses.isEmpty) {
-      Get.snackbar("Error", "Please add shipping address");
-      return;
-    }
-
-    // 2. Lấy địa chỉ (Ưu tiên Default, nếu không thì lấy cái đầu tiên)
+    // 2. Lấy địa chỉ default
     final shippingAddress = addressController.addresses.firstWhereOrNull((e) => e.isDefault)
-                            ?? addressController.addresses.first;
+                          ?? addressController.addresses.first;
 
     try {
-      isLoading.value = true;
+      isLoading.value = true; // Bắt đầu loading
 
-      // Tạo mã đơn hàng: ORD + timestamp
+      // Tạo mã đơn hàng
       final orderNumber = "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
+      final totalAmount = cartController.total.value;
 
-      // 3. Gọi Service đặt hàng
+      // 3. GỌI SERVICE (Đã fix lỗi Map CartItem)
       final success = await OrderSupabaseService.placeOrder(
         userId: userId,
         orderNumber: orderNumber,
-        totalAmount: cartController.total.value,
+        totalAmount: totalAmount,
         shippingAddress: shippingAddress,
         cartItems: cartController.cartItems,
       );
 
+      // 4. XỬ LÝ KẾT QUẢ
       if (success) {
-        // 4. Xử lý sau khi thành công
-        await cartController.clearCart(); // Xóa giỏ hàng local/db
-        await fetchOrders(); // Refresh lại list đơn hàng để thấy đơn mới ở tab Active
+        // === TRƯỜNG HỢP THÀNH CÔNG ===
 
-        Get.snackbar("Success", "Order placed successfully!");
+        // Dọn dẹp giỏ hàng
+        await cartController.clearCart();
 
-        // Chuyển hướng (Tùy chọn: Về trang chủ hoặc trang xác nhận)
-        // Get.offAllNamed('/home');
+        // Refresh lại list đơn hàng bên tab My Orders
+        fetchOrders();
+
+        // Chuyển sang trang Xác nhận (Dùng Get.off để không quay lại được trang checkout)
+        Get.off(() => OrderConfirmationScreen(
+          orderNumber: orderNumber,
+          totalAmount: totalAmount,
+          isSuccess: true,
+        ));
+
       } else {
-        Get.snackbar("Error", "Failed to place order. Please try again.");
+        // === TRƯỜNG HỢP THẤT BẠI (Do lỗi Server/Mạng) ===
+        // Không chuyển trang, chỉ hiện thông báo
+        Get.snackbar(
+          "Order Failed",
+          "Could not place your order. Please try again.",
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
       }
+
     } catch (e) {
-      Get.snackbar("Error", "Something went wrong: $e");
+      // === TRƯỜNG HỢP LỖI CODE/CRASH ===
+      print("Controller Error: $e");
+      Get.snackbar(
+        "Error",
+        "Something went wrong: $e",
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
     } finally {
-      isLoading.value = false;
+      isLoading.value = false; // Tắt loading dù thành công hay thất bại
     }
   }
 }
