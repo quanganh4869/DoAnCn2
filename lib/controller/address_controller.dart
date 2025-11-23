@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/features/shippingaddress/models/address.dart';
 import 'package:ecomerceapp/supabase/shippingaddress_supabase_services.dart';
+
 
 class AddressController extends GetxController {
   final AddressSupabaseService _service = AddressSupabaseService();
 
   var addresses = <Address>[].obs;
   var isLoading = false.obs;
+  final _supabase = Supabase.instance.client;
 
   final labelController = TextEditingController();
   final fullAddressController = TextEditingController();
@@ -15,12 +19,36 @@ class AddressController extends GetxController {
   final stateController = TextEditingController();
   final zipCodeController = TextEditingController();
 
-  String? editingId;
-
+String? editingId;
+  StreamSubscription<AuthState>? _authSubscription;
   @override
   void onInit() {
     super.onInit();
-    fetchAddresses();
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      // Nếu đã có session (đã đăng nhập/khôi phục xong), tải dữ liệu
+      if (session != null) {
+        fetchAddresses();
+      }
+    });
+
+    // Vẫn gọi 1 lần cho trường hợp Mobile (đã có session sẵn)
+    if (_supabase.auth.currentUser != null) {
+      fetchAddresses();
+    }
+  }
+
+  @override
+  void onClose() {
+    _authSubscription?.cancel(); // Hủy lắng nghe khi thoát
+    labelController.dispose();
+    fullAddressController.dispose();
+    cityController.dispose();
+    stateController.dispose();
+    zipCodeController.dispose();
+    super.onClose();
   }
 
   Future<void> fetchAddresses() async {
@@ -135,10 +163,5 @@ class AddressController extends GetxController {
     }
   }
 
-  @override
-  void onClose() {
-    labelController.dispose();
-    fullAddressController.dispose();
-    super.onClose();
-  }
+
 }

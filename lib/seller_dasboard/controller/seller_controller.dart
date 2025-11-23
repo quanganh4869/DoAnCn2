@@ -5,17 +5,17 @@ import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/models/user_profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/controller/product_controller.dart';
-
+import 'package:ecomerceapp/supabase/order_supabase_services.dart';
 
 class SellerController extends GetxController {
   final _supabase = Supabase.instance.client;
   final AuthController _authController = Get.find<AuthController>();
-
   var isSellerMode = false.obs;
-  var myProducts = <Products>[].obs;
   var isLoading = false.obs;
-
+  var myProducts = <Products>[].obs;
+  var orders = <Order>[].obs;
   StreamSubscription<List<Map<String, dynamic>>>? _sellerRealtimeSubscription;
 
   @override
@@ -28,6 +28,7 @@ class SellerController extends GetxController {
         resetState();
       }
     });
+
     if (_authController.userProfile != null) {
       _setupRealtimeListener(_authController.userProfile!.id);
     }
@@ -42,10 +43,12 @@ class SellerController extends GetxController {
   void resetState() {
     isSellerMode.value = false;
     myProducts.clear();
+    orders.clear();
     isLoading.value = false;
     _sellerRealtimeSubscription?.cancel();
   }
 
+  // --- 1. REALTIME LISTENER (Shop Approval) ---
   void _setupRealtimeListener(String userId) {
     _sellerRealtimeSubscription?.cancel();
     _sellerRealtimeSubscription = _supabase
@@ -55,21 +58,21 @@ class SellerController extends GetxController {
         .listen((List<Map<String, dynamic>> data) {
       if (data.isNotEmpty) {
         final updatedProfile = UserProfile.fromJson(data.first);
-        final oldStatus = _authController.userProfile?.sellerStatus;
         final newStatus = updatedProfile.sellerStatus;
+        final oldStatus = _authController.userProfile?.sellerStatus;
 
         if (oldStatus != 'active' && (newStatus == 'active' || newStatus == 'approved')) {
-          _showSuccessSnackbar("Chúc mừng!", "Cửa hàng của bạn đã được duyệt.");
+          _showSuccessSnackbar("Congratulations!", "Your shop has been approved.");
           isSellerMode.value = true;
           fetchSellerProducts();
-        } else if (newStatus == 'rejected' && oldStatus != 'rejected') {
-          _showErrorSnackbar("Thông báo", "Yêu cầu đăng ký của bạn đã bị từ chối.");
+          fetchSellerOrders();
         }
         _authController.updateLocalProfile(updatedProfile);
       }
     });
   }
 
+  // --- 2. SELLER REGISTRATION ---
   Future<bool> registerSeller({
     required String storeName,
     required String description,
@@ -91,15 +94,17 @@ class SellerController extends GetxController {
         'seller_status': 'pending',
       };
       await _supabase.from('users').update(updateData).eq('id', user.id);
+
       final updatedProfile = user.copyWith(
         storeName: storeName, storeDescription: description, businessEmail: businessEmail,
         shopPhone: shopPhone, shopAddress: shopAddress, sellerStatus: 'pending',
       );
+
       await _authController.updateLocalProfile(updatedProfile);
-      _showSuccessSnackbar("Thành công", "Đã gửi hồ sơ đăng ký shop!");
+      _showSuccessSnackbar("Success", "Shop registration submitted!");
       return true;
     } catch (e) {
-      _showErrorSnackbar("Lỗi", "Có lỗi xảy ra: $e");
+      _showErrorSnackbar("Error", "An error occurred: $e");
       return false;
     } finally {
       isLoading.value = false;
@@ -109,28 +114,31 @@ class SellerController extends GetxController {
   void toggleSellerMode() {
     final user = _authController.userProfile;
     if (user == null || (user.sellerStatus == 'none' || user.sellerStatus == null)) {
-       _showErrorSnackbar("Lỗi", "Bạn chưa đăng ký người bán.");
+       _showErrorSnackbar("Error", "You haven't registered as a seller.");
        return;
     }
     if (user.sellerStatus == 'pending') {
-      _showErrorSnackbar("Chờ duyệt", "Hồ sơ đang được xét duyệt.");
+      _showErrorSnackbar("Pending", "Your application is under review.");
       return;
     }
     if (user.sellerStatus == 'rejected') {
-      _showErrorSnackbar("Từ chối", "Hồ sơ bị từ chối. Vui lòng đăng ký lại.");
+      _showErrorSnackbar("Rejected", "Your application was rejected.");
       return;
     }
     if (user.sellerStatus == 'active' || user.sellerStatus == 'approved') {
       isSellerMode.value = !isSellerMode.value;
       if (isSellerMode.value) {
+        // Load data when switching to Seller Mode
         fetchSellerProducts();
-        _showInfoSnackbar("Chế độ", "Dashboard Người bán");
+        fetchSellerOrders();
+        _showInfoSnackbar("Mode", "Seller Dashboard");
       } else {
-        _showInfoSnackbar("Chế độ", "Mua hàng");
+        _showInfoSnackbar("Mode", "Shopping");
       }
     }
   }
 
+  // --- 3. PRODUCT MANAGEMENT ---
   Future<void> fetchSellerProducts() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -163,10 +171,10 @@ class SellerController extends GetxController {
       });
       await fetchSellerProducts();
       _refreshGlobalProducts();
-      _showSuccessSnackbar("Thành công", "Đã thêm sản phẩm!");
+      _showSuccessSnackbar("Success", "Product added!");
       return true;
     } catch (e) {
-      _showErrorSnackbar("Lỗi", "Thêm sản phẩm thất bại: $e");
+      _showErrorSnackbar("Error", "Failed to add product: $e");
       return false;
     } finally {
       isLoading.value = false;
@@ -188,11 +196,10 @@ class SellerController extends GetxController {
       await fetchSellerProducts();
       _refreshGlobalProducts();
 
-      // ✅ ĐÃ FIX: Đưa thông báo lên TOP để không bị bàn phím che
-      _showSuccessSnackbar("Thành công", "Đã cập nhật sản phẩm!");
+      _showSuccessSnackbar("Success", "Product updated!");
       return true;
     } catch (e) {
-      _showErrorSnackbar("Lỗi", "Cập nhật thất bại: $e");
+      _showErrorSnackbar("Error", "Update failed: $e");
       return false;
     } finally {
       isLoading.value = false;
@@ -208,9 +215,9 @@ class SellerController extends GetxController {
       }
       myProducts.removeWhere((p) => p.id == productId);
       _refreshGlobalProducts();
-      _showSuccessSnackbar("Đã xóa", "Sản phẩm đã được xóa thành công.");
+      _showSuccessSnackbar("Deleted", "Product deleted successfully.");
     } catch (e) {
-      _showErrorSnackbar("Lỗi", "Không thể xóa: $e");
+      _showErrorSnackbar("Error", "Cannot delete: $e");
     }
   }
 
@@ -220,11 +227,70 @@ class SellerController extends GetxController {
     }
   }
 
-  // ✅ CẤU HÌNH SNACKBAR CHUẨN (HIỆN TRÊN CÙNG)
+  // --- 4. ORDER MANAGEMENT (UPDATED) ---
+
+  // Fetch orders specific to this seller
+  void fetchSellerOrders() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      // Calls service with userId to filter only this seller's products
+      final result = await OrderSupabaseService.getSellerOrders(userId);
+      orders.value = result;
+    } catch (e) {
+      debugPrint("Error fetching orders: $e");
+    }
+  }
+
+  // Change Order Status + Deduct Stock
+  Future<void> changeOrderStatus(Order order, OrderStatus nextStatus) async {
+    try {
+      isLoading.value = true;
+
+      // Logic: If changing from Pending -> Confirmed, deduct stock
+      if (order.status == OrderStatus.pending && nextStatus == OrderStatus.confirmed) {
+
+        // order.items is already filtered by getSellerOrders to only contain this shop's items
+        final stockUpdated = await OrderSupabaseService.updateProductStock(order.items);
+
+        if (!stockUpdated) {
+          Get.snackbar(
+            "Out of Stock",
+            "Not enough stock inventory to confirm this order!",
+            backgroundColor: Colors.red.withOpacity(0.1),
+            colorText: Colors.red,
+            snackPosition: SnackPosition.TOP
+          );
+          isLoading.value = false;
+          return;
+        }
+      }
+
+      final success = await OrderSupabaseService.updateOrderStatus(
+        order.id,
+        nextStatus.name
+      );
+
+      if (success) {
+        _showSuccessSnackbar("Success", "Order status updated to: ${nextStatus.name}");
+        fetchSellerOrders(); // Refresh list
+      } else {
+        _showErrorSnackbar("Error", "Failed to update status");
+      }
+    } catch (e) {
+      debugPrint("Error changing order status: $e");
+      _showErrorSnackbar("Error", "Exception: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // --- SNACKBAR HELPERS ---
   void _showSuccessSnackbar(String t, String m) => Get.rawSnackbar(
     title: t, message: m,
     backgroundColor: Colors.green,
-    snackPosition: SnackPosition.TOP, // QUAN TRỌNG
+    snackPosition: SnackPosition.TOP,
     margin: const EdgeInsets.all(10), borderRadius: 10,
     icon: const Icon(Icons.check_circle, color: Colors.white)
   );

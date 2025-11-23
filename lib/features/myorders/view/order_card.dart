@@ -6,6 +6,7 @@ import 'package:ecomerceapp/features/myorders/model/order.dart';
 class OrderCard extends StatelessWidget {
   final Order order;
   final VoidCallback onViewDetails;
+
   const OrderCard({
     super.key,
     required this.order,
@@ -15,6 +16,12 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Xử lý ảnh an toàn
+    final ImageProvider imageProvider = (order.imageUrl.isNotEmpty)
+        ? NetworkImage(order.imageUrl)
+        : const AssetImage('assets/images/placeholder.png') as ImageProvider; // Đảm bảo bạn có ảnh placeholder hoặc dùng Icon thay thế
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       decoration: BoxDecoration(
@@ -36,18 +43,27 @@ class OrderCard extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
+                // Ảnh sản phẩm
                 Container(
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12.0),
-                    image: DecorationImage(
-                      image: NetworkImage(order.imageUrl),
-                      fit: BoxFit.cover,
-                    ),
+                    color: Colors.grey[200], // Màu nền nếu ảnh lỗi
+                    image: order.imageUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: imageProvider,
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
+                  child: order.imageUrl.isEmpty
+                      ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                      : null,
                 ),
                 const SizedBox(width: 16.0),
+
+                // Thông tin chi tiết
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,7 +84,8 @@ class OrderCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8.0),
-                      _buildStatusChip(context, order.statusString),
+                      // Truyền status Enum để logic màu chính xác hơn
+                      _buildStatusChip(context, order.status),
                     ],
                   ),
                 ),
@@ -81,6 +98,10 @@ class OrderCard extends StatelessWidget {
           ),
           InkWell(
             onTap: onViewDetails,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(16),
+              bottomRight: Radius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Center(
@@ -99,19 +120,30 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(BuildContext context, String type) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildStatusChip(BuildContext context, OrderStatus status) {
     Color getStatusColor() {
-      switch (type) {
-        case 'Active':
+      switch (status) {
+        case OrderStatus.pending:
+        case OrderStatus.confirmed:
+        case OrderStatus.shipping:
+        case OrderStatus.delivering:
           return Colors.blue;
-        case 'Completed':
+        case OrderStatus.completed:
           return Colors.green;
-        case 'Cancelled':
+        case OrderStatus.cancelled:
           return Colors.red;
-        default:
-          return Colors.grey;
       }
+    }
+
+    // Lấy text hiển thị từ Model
+    String statusText = "";
+    switch (status) {
+      case OrderStatus.pending: statusText = "Pending"; break;
+      case OrderStatus.confirmed: statusText = "Confirmed"; break;
+      case OrderStatus.shipping: statusText = "Shipping"; break;
+      case OrderStatus.delivering: statusText = "Delivering"; break;
+      case OrderStatus.completed: statusText = "Completed"; break;
+      case OrderStatus.cancelled: statusText = "Cancelled"; break;
     }
 
     return Container(
@@ -121,7 +153,7 @@ class OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.0),
       ),
       child: Text(
-        type.capitalize!,
+        statusText.capitalize!,
         style: AppTextStyles.withColor(
           AppTextStyles.bodySmall,
           getStatusColor(),

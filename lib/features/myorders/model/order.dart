@@ -23,6 +23,9 @@ class Order {
   final String imageUrl;
   final int itemCount;
 
+  // Dữ liệu Logic (BẮT BUỘC PHẢI CÓ ĐỂ TRỪ KHO)
+  final List<OrderItem> items;
+
   Order({
     required this.id,
     required this.orderNumber,
@@ -33,12 +36,13 @@ class Order {
     this.shippingAddress,
     this.imageUrl = '',
     this.itemCount = 0,
+    required this.items, // Thêm vào constructor
   });
 
   // Helper chuyển String sang Enum
-  static OrderStatus _parseStatus(String status) {
+  static OrderStatus _parseStatus(String? status) {
     return OrderStatus.values.firstWhere(
-      (e) => e.name == status,
+      (e) => e.name.toLowerCase() == (status?.toLowerCase() ?? ''),
       orElse: () => OrderStatus.pending,
     );
   }
@@ -46,17 +50,21 @@ class Order {
   factory Order.fromSupabaseJson(Map<String, dynamic> json) {
     String img = '';
     int count = 0;
+    List<OrderItem> parsedItems = [];
 
-    // Xử lý lấy ảnh và số lượng từ order_items
+    // Xử lý lấy ảnh, số lượng VÀ danh sách chi tiết từ order_items
     if (json['order_items'] != null && (json['order_items'] as List).isNotEmpty) {
-      final items = json['order_items'] as List;
-      count = items.length;
+      final listData = json['order_items'] as List;
+      count = listData.length;
 
-      // Lấy ảnh sản phẩm đầu tiên làm đại diện
-      final firstItem = items[0];
+      // 1. Map ra danh sách items để dùng cho logic trừ kho
+      parsedItems = listData.map((e) => OrderItem.fromJson(e)).toList();
+
+      // 2. Lấy ảnh sản phẩm đầu tiên làm đại diện (Logic cũ của bạn)
+      final firstItem = listData[0];
       if (firstItem['products'] != null && firstItem['products']['images'] != null) {
         final images = firstItem['products']['images'] as List;
-        if (images.isNotEmpty) img = images[0];
+        if (images.isNotEmpty) img = images[0].toString();
       }
     }
 
@@ -65,10 +73,11 @@ class Order {
       orderNumber: json['order_number'] ?? '',
       userId: json['user_id'] ?? '',
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
-      status: _parseStatus(json['status'] ?? 'pending'),
-      orderDate: DateTime.tryParse(json['created_at']) ?? DateTime.now(),
+      status: _parseStatus(json['status']),
+      orderDate: DateTime.tryParse(json['created_at'])?.toLocal() ?? DateTime.now(),
       imageUrl: img,
       itemCount: count,
+      items: parsedItems, // Gán list items
       shippingAddress: json['shipping_address'] != null
           ? Address.fromJson(json['shipping_address'])
           : null,
@@ -84,5 +93,56 @@ class Order {
       case OrderStatus.completed: return "Completed";
       case OrderStatus.cancelled: return "Cancelled/Failed";
     }
+  }
+}
+
+// === ĐÂY LÀ CLASS ORDERITEM BẠN ĐANG THIẾU ===
+// (Đặt nó ở cuối file này để tiện quản lý)
+class OrderItem {
+  final String id;
+  final int productId;
+  final int quantity;
+  final double price;
+  final String? selectedSize;
+  final String? selectedColor;
+
+  // Thêm các trường phụ để hiển thị chi tiết sản phẩm
+  final String productName;
+  final String productImage;
+
+  OrderItem({
+    required this.id,
+    required this.productId,
+    required this.quantity,
+    required this.price,
+    this.selectedSize,
+    this.selectedColor,
+    this.productName = '',
+    this.productImage = '',
+  });
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    // Xử lý dữ liệu Nested từ bảng products (do query select join)
+    final productData = json['products'] as Map<String, dynamic>?;
+    String name = 'Unknown Product';
+    String img = '';
+
+    if (productData != null) {
+      name = productData['name'] ?? name;
+      if (productData['images'] != null && (productData['images'] as List).isNotEmpty) {
+        img = productData['images'][0].toString();
+      }
+    }
+
+    return OrderItem(
+      id: json['id'].toString(),
+      productId: json['product_id'] ?? 0,
+      quantity: json['quantity'] ?? 1,
+      price: (json['price_at_purchase'] ?? 0).toDouble(),
+      selectedSize: json['selected_size'],
+      selectedColor: json['selected_color'],
+      productName: name,
+      productImage: img,
+    );
   }
 }

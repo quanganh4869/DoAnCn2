@@ -42,14 +42,12 @@ class AccountScreen extends StatelessWidget {
           ),
         ],
       ),
-      // --- TÍNH NĂNG KÉO ĐỂ LÀM MỚI (Pull to Refresh) ---
       body: RefreshIndicator(
         onRefresh: () async {
-          // Gọi hàm load lại user profile để cập nhật trạng thái mới nhất
           await authController.loadUserFromSession();
         },
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(), // Cho phép kéo ngay cả khi nội dung ngắn
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               _buildProfileSection(context),
@@ -64,22 +62,15 @@ class AccountScreen extends StatelessWidget {
 
   Widget _buildProfileSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Dùng Obx để lắng nghe thay đổi thông tin User
     return Obx(() {
       final user = authController.userProfile;
-
-      // --- LOGIC HIỂN THỊ TÊN KÈM TRẠNG THÁI ---
       String displayName = user?.fullName ?? "User Name";
       final status = user?.sellerStatus ?? 'none';
-
-      // Chỉ thêm hậu tố trạng thái nếu là Active hoặc Pending
       if (status == 'active' || status == 'approved') {
         displayName += " (Seller)";
       } else if (status == 'pending') {
         displayName += " (Pending)";
       }
-      // Nếu Rejected hoặc None thì giữ nguyên tên gốc
 
       return Container(
         width: double.infinity,

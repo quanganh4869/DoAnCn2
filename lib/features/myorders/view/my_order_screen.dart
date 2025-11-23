@@ -4,11 +4,10 @@ import 'package:ecomerceapp/controller/order_controller.dart';
 import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/features/myorders/view/order_card.dart';
 
-
 class MyOrderScreen extends StatelessWidget {
   MyOrderScreen({super.key});
 
-  final OrderController controller = Get.put(OrderController());
+  final OrderController controller = Get.find<OrderController>();
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +18,22 @@ class MyOrderScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
-        ),
-          title: Text("My Orders", style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: "Active"),    // Gồm: Pending, Confirmed, Shipping, Delivering
-              Tab(text: "Completed"), // Gồm: Completed
-              Tab(text: "Cancelled"), // Gồm: Cancelled
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+          ),
+          title: Text(
+            "My Orders",
+            style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)
+          ),
+          centerTitle: true,
+          bottom: TabBar(
+            labelColor: Theme.of(context).primaryColor,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Theme.of(context).primaryColor,
+            tabs: const [
+              Tab(text: "Active"),    // Pending, Confirmed, Shipping, Delivering
+              Tab(text: "Completed"), // Completed
+              Tab(text: "Cancelled"), // Cancelled
             ],
           ),
         ),
@@ -36,10 +42,12 @@ class MyOrderScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // LỌC DATA CHO CÁC TAB
-          // Tab 1: Active (Tất cả trạng thái đang xử lý)
+          // FILTER DATA FOR TABS
+
+          // Tab 1: Active (Processing states)
           final activeList = controller.allOrders.where((o) =>
-            o.status != OrderStatus.completed && o.status != OrderStatus.cancelled
+            o.status != OrderStatus.completed &&
+            o.status != OrderStatus.cancelled
           ).toList();
 
           // Tab 2: Completed
@@ -54,9 +62,9 @@ class MyOrderScreen extends StatelessWidget {
 
           return TabBarView(
             children: [
-              _buildOrderList(context, activeList),
-              _buildOrderList(context, completedList),
-              _buildOrderList(context, cancelledList),
+              _buildOrderList(context, activeList, "No active orders"),
+              _buildOrderList(context, completedList, "No completed orders"),
+              _buildOrderList(context, cancelledList, "No cancelled orders"),
             ],
           );
         }),
@@ -64,19 +72,32 @@ class MyOrderScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderList(BuildContext context, List<Order> orders) {
+  Widget _buildOrderList(BuildContext context, List<Order> orders, String emptyMsg) {
     if (orders.isEmpty) {
-      return const Center(child: Text("No orders found"));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(emptyMsg, style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          ],
+        ),
+      );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16.0),
-      itemCount: orders.length,
-      itemBuilder: (context, index) => OrderCard(
-        order: orders[index], // Đảm bảo OrderCard nhận Order
-        onViewDetails: () {
-          // Navigate to Detail
-        },
+    return RefreshIndicator(
+      onRefresh: () async => await controller.fetchOrders(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: orders.length,
+        itemBuilder: (context, index) => OrderCard(
+          order: orders[index],
+          onViewDetails: () {
+            // Navigate to Order Detail Screen here
+            // Get.to(() => OrderDetailScreen(order: orders[index]));
+          },
+        ),
       ),
     );
   }

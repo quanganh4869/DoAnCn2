@@ -46,7 +46,6 @@ class ShippingAddressScreen extends StatelessWidget {
               address: address,
               onEdit: () => _handleEditAddress(context, address),
               onDelete: () => _handleDeleteAddress(context, address.id!),
-              // GẮN HÀM SET DEFAULT VÀO ĐÂY
               onSetDefault: () => controller.setDefaultAddress(address.id!),
             );
           },

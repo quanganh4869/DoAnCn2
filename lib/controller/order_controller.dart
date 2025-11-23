@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,24 +8,23 @@ import 'package:ecomerceapp/controller/address_controller.dart';
 import 'package:ecomerceapp/supabase/order_supabase_services.dart';
 import 'package:ecomerceapp/features/order_confirmation/screens/order_confirmation_screen.dart';
 
-
 class OrderController extends GetxController {
-  // Sử dụng Order thay vì Order cũ
   var allOrders = <Order>[].obs;
   var isLoading = false.obs;
+  StreamSubscription<AuthState>? _authSubscription;
+  final _supabase = Supabase.instance.client;
 
-  // Active: Bao gồm Pending, Confirmed, Shipping, Delivering (Tất cả chưa hoàn thành/hủy)
-  List<Order> get activeOrders =>
-      allOrders.where((o) =>
-        o.status != OrderStatus.completed &&
-        o.status != OrderStatus.cancelled
-      ).toList();
+  List<Order> get activeOrders => allOrders
+      .where(
+        (o) =>
+            o.status != OrderStatus.completed &&
+            o.status != OrderStatus.cancelled,
+      )
+      .toList();
 
-  // Completed: Chỉ đơn giao thành công
   List<Order> get completedOrders =>
       allOrders.where((o) => o.status == OrderStatus.completed).toList();
 
-  // Cancelled: Đơn hủy hoặc thất bại
   List<Order> get cancelledOrders =>
       allOrders.where((o) => o.status == OrderStatus.cancelled).toList();
 
@@ -33,7 +33,21 @@ class OrderController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchOrders();
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
+      final Session? session = data.session;
+      if (session != null) {
+        fetchOrders();
+      }
+    });
+    if (_userId != null) {
+      fetchOrders();
+    }
+  }
+
+  @override
+  void onClose() {
+    _authSubscription?.cancel();
+    super.onClose();
   }
 
   // Lấy danh sách đơn hàng
@@ -41,7 +55,6 @@ class OrderController extends GetxController {
     if (_userId == null) return;
     try {
       isLoading.value = true;
-      // Gọi hàm từ OrderSupabaseService
       final orders = await OrderSupabaseService.getMyOrders(_userId!);
       allOrders.assignAll(orders);
     } catch (e) {
@@ -64,14 +77,16 @@ class OrderController extends GetxController {
     }
 
     // 2. Lấy địa chỉ default
-    final shippingAddress = addressController.addresses.firstWhereOrNull((e) => e.isDefault)
-                          ?? addressController.addresses.first;
+    final shippingAddress =
+        addressController.addresses.firstWhereOrNull((e) => e.isDefault) ??
+        addressController.addresses.first;
 
     try {
       isLoading.value = true; // Bắt đầu loading
 
       // Tạo mã đơn hàng
-      final orderNumber = "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
+      final orderNumber =
+          "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
       final totalAmount = cartController.total.value;
 
       // 3. GỌI SERVICE (Đã fix lỗi Map CartItem)
@@ -94,15 +109,14 @@ class OrderController extends GetxController {
         fetchOrders();
 
         // Chuyển sang trang Xác nhận (Dùng Get.off để không quay lại được trang checkout)
-        Get.off(() => OrderConfirmationScreen(
-          orderNumber: orderNumber,
-          totalAmount: totalAmount,
-          isSuccess: true,
-        ));
-
+        Get.off(
+          () => OrderConfirmationScreen(
+            orderNumber: orderNumber,
+            totalAmount: totalAmount,
+            isSuccess: true,
+          ),
+        );
       } else {
-        // === TRƯỜNG HỢP THẤT BẠI (Do lỗi Server/Mạng) ===
-        // Không chuyển trang, chỉ hiện thông báo
         Get.snackbar(
           "Order Failed",
           "Could not place your order. Please try again.",
@@ -112,7 +126,6 @@ class OrderController extends GetxController {
           margin: const EdgeInsets.all(16),
         );
       }
-
     } catch (e) {
       // === TRƯỜNG HỢP LỖI CODE/CRASH ===
       print("Controller Error: $e");
