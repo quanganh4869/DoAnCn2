@@ -3,32 +3,21 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/controller/cart_controller.dart';
-import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/controller/address_controller.dart';
+import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/supabase/order_supabase_services.dart';
 import 'package:ecomerceapp/features/order_confirmation/screens/order_confirmation_screen.dart';
 
+
 class OrderController extends GetxController {
-  var allOrders = <Order>[].obs;
-  var isLoading = false.obs;
-  StreamSubscription<AuthState>? _authSubscription;
   final _supabase = Supabase.instance.client;
 
-  List<Order> get activeOrders => allOrders
-      .where(
-        (o) =>
-            o.status != OrderStatus.completed &&
-            o.status != OrderStatus.cancelled,
-      )
-      .toList();
+  var allOrders = <Order>[].obs;
+  var isLoading = false.obs;
 
-  List<Order> get completedOrders =>
-      allOrders.where((o) => o.status == OrderStatus.completed).toList();
+  StreamSubscription<AuthState>? _authSubscription;
 
-  List<Order> get cancelledOrders =>
-      allOrders.where((o) => o.status == OrderStatus.cancelled).toList();
-
-  String? get _userId => Supabase.instance.client.auth.currentUser?.id;
+  String? get _userId => _supabase.auth.currentUser?.id;
 
   @override
   void onInit() {
@@ -39,6 +28,7 @@ class OrderController extends GetxController {
         fetchOrders();
       }
     });
+
     if (_userId != null) {
       fetchOrders();
     }
@@ -50,7 +40,6 @@ class OrderController extends GetxController {
     super.onClose();
   }
 
-  // Lấy danh sách đơn hàng
   Future<void> fetchOrders() async {
     if (_userId == null) return;
     try {
@@ -64,32 +53,36 @@ class OrderController extends GetxController {
     }
   }
 
-  // Hàm Đặt hàng (Gọi từ màn hình Checkout)
   Future<void> placeOrder() async {
     final userId = _userId;
     final cartController = Get.find<CartController>();
-    final addressController = Get.find<AddressController>();
+    final addressController = Get.isRegistered<AddressController>()
+        ? Get.find<AddressController>()
+        : Get.put(AddressController());
 
-    // 1. Validation (Giữ nguyên)
     if (userId == null) {
       Get.snackbar("Error", "Please login to place order");
       return;
     }
 
-    // 2. Lấy địa chỉ default
-    final shippingAddress =
-        addressController.addresses.firstWhereOrNull((e) => e.isDefault) ??
-        addressController.addresses.first;
+    if (cartController.cartItems.isEmpty) {
+      Get.snackbar("Error", "Cart is empty");
+      return;
+    }
+
+    if (addressController.addresses.isEmpty) {
+      Get.snackbar("Error", "Please add shipping address");
+      return;
+    }
+
+    final shippingAddress = addressController.addresses.firstWhereOrNull((e) => e.isDefault)
+                            ?? addressController.addresses.first;
 
     try {
-      isLoading.value = true; // Bắt đầu loading
-
-      // Tạo mã đơn hàng
-      final orderNumber =
-          "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
+      isLoading.value = true;
+      final orderNumber = "ORD${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}";
       final totalAmount = cartController.total.value;
 
-      // 3. GỌI SERVICE (Đã fix lỗi Map CartItem)
       final success = await OrderSupabaseService.placeOrder(
         userId: userId,
         orderNumber: orderNumber,
@@ -98,45 +91,64 @@ class OrderController extends GetxController {
         cartItems: cartController.cartItems,
       );
 
-      // 4. XỬ LÝ KẾT QUẢ
       if (success) {
-        // === TRƯỜNG HỢP THÀNH CÔNG ===
-
-        // Dọn dẹp giỏ hàng
         await cartController.clearCart();
-
-        // Refresh lại list đơn hàng bên tab My Orders
-        fetchOrders();
-
-        // Chuyển sang trang Xác nhận (Dùng Get.off để không quay lại được trang checkout)
-        Get.off(
-          () => OrderConfirmationScreen(
-            orderNumber: orderNumber,
-            totalAmount: totalAmount,
-            isSuccess: true,
-          ),
-        );
+        await fetchOrders();
+        Get.off(() => OrderConfirmationScreen(
+          orderNumber: orderNumber,
+          totalAmount: totalAmount,
+          isSuccess: true,
+        ));
       } else {
-        Get.snackbar(
-          "Order Failed",
-          "Could not place your order. Please try again.",
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-        );
+        Get.to(() => OrderConfirmationScreen(
+          orderNumber: "ERR",
+          totalAmount: 0,
+          isSuccess: false,
+        ));
       }
     } catch (e) {
-      // === TRƯỜNG HỢP LỖI CODE/CRASH ===
-      print("Controller Error: $e");
+      print("Place order error: $e");
+      Get.snackbar("Error", "Something went wrong: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // --- TÍNH NĂNG MỚI: XÓA ĐƠN HÀNG ---
+  Future<void> deleteOrder(String orderId) async {
+    try {
+      isLoading.value = true;
+
+      // Xóa trong Database
+      // Lưu ý: Do có khóa ngoại (FK) ở order_items, bạn cần chắc chắn DB set "ON DELETE CASCADE"
+      // Nếu chưa set cascade, bạn phải xóa order_items trước.
+      // Ở đây giả định Supabase đã config cascade hoặc ta xóa bảng cha.
+
+      // Xóa items trước cho an toàn (nếu DB chưa config cascade)
+      await _supabase.from('order_items').delete().eq('order_id', orderId);
+      // Xóa order master
+      await _supabase.from('orders').delete().eq('id', orderId);
+
+      // Cập nhật UI Local
+      allOrders.removeWhere((order) => order.id == orderId);
+
+      Get.snackbar(
+        "Success",
+        "Order deleted successfully",
+        backgroundColor: Colors.green.withOpacity(0.1),
+        colorText: Colors.green,
+        snackPosition: SnackPosition.TOP
+      );
+    } catch (e) {
+      print("Delete order error: $e");
       Get.snackbar(
         "Error",
-        "Something went wrong: $e",
+        "Failed to delete order. Please try again.",
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
       );
     } finally {
-      isLoading.value = false; // Tắt loading dù thành công hay thất bại
+      isLoading.value = false;
     }
   }
 }

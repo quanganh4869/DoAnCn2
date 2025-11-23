@@ -1,28 +1,24 @@
 import 'package:get/get.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/features/notification/utils/notification_utils.dart';
+import 'package:ecomerceapp/features/notification/view/notification_utils.dart';
 import 'package:ecomerceapp/features/notification/models/notification_type.dart';
-import 'package:ecomerceapp/features/notification/repositories/notification_repository.dart';
+import 'package:ecomerceapp/features/notification/controller/notification_controller.dart';
 
 class NotificationScreen extends StatelessWidget {
-  final NotificationRepository _repository = NotificationRepository();
   NotificationScreen({super.key});
+
+  final NotificationController controller = Get.put(NotificationController());
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final notifications = _repository.getNotifications();
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(
-            Icons.arrow_back,
-            color: isDark ? Colors.white : Colors.black,
-          ),
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
         ),
         title: Text(
           "Notifications",
@@ -33,7 +29,7 @@ class NotificationScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () => controller.markAllAsRead(),
             child: Text(
               "Mark all as read",
               style: AppTextStyles.withColor(
@@ -44,12 +40,19 @@ class NotificationScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) =>
-            _buildNotificationCard(context, notifications[index]),
-      ),
+      // Dùng Obx để UI tự động cập nhật khi có thông báo mới realtime
+      body: Obx(() {
+        if (controller.notifications.isEmpty) {
+          return const Center(child: Text("No notifications yet"));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16.0),
+          itemCount: controller.notifications.length,
+          itemBuilder: (context, index) =>
+              _buildNotificationCard(context, controller.notifications[index]),
+        );
+      }),
     );
   }
 
@@ -58,6 +61,7 @@ class NotificationScreen extends StatelessWidget {
     NotificationItem notification,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       decoration: BoxDecoration(
@@ -107,6 +111,12 @@ class NotificationScreen extends StatelessWidget {
                 AppTextStyles.bodySmall,
                 isDark ? Colors.grey[400]! : Colors.grey[600]!,
               ),
+            ),
+            const SizedBox(height: 4),
+            // Hiển thị thời gian (tùy chọn)
+            Text(
+              "${notification.date.hour}:${notification.date.minute} - ${notification.date.day}/${notification.date.month}",
+              style: TextStyle(fontSize: 10, color: Colors.grey),
             ),
           ],
         ),

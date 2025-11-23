@@ -115,11 +115,9 @@ class Products {
       'review_count': reviewCount,
       'tags': tags,
       'specification': specification,
-      // Không gửi brand lên vì brand được tự động lấy theo Seller ID trong DB
     };
   }
 
-  // Getters hỗ trợ hiển thị UI
   String get imageUrl => primaryImage.isNotEmpty ? primaryImage : (images.isNotEmpty ? images[0] : '');
 
   bool get hasDiscount => oldPrice != null && oldPrice! > price;

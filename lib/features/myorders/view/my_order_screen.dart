@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/controller/order_controller.dart';
 import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/features/myorders/view/order_card.dart';
+import 'package:ecomerceapp/features/myorders/view/my_order_details_screen.dart';
 
 class MyOrderScreen extends StatelessWidget {
   MyOrderScreen({super.key});
@@ -31,9 +32,9 @@ class MyOrderScreen extends StatelessWidget {
             unselectedLabelColor: Colors.grey,
             indicatorColor: Theme.of(context).primaryColor,
             tabs: const [
-              Tab(text: "Active"),    // Pending, Confirmed, Shipping, Delivering
-              Tab(text: "Completed"), // Completed
-              Tab(text: "Cancelled"), // Cancelled
+              Tab(text: "Active"),
+              Tab(text: "Completed"),
+              Tab(text: "Cancelled"),
             ],
           ),
         ),
@@ -42,29 +43,28 @@ class MyOrderScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // FILTER DATA FOR TABS
-
-          // Tab 1: Active (Processing states)
+          // Filter orders for each tab
           final activeList = controller.allOrders.where((o) =>
             o.status != OrderStatus.completed &&
             o.status != OrderStatus.cancelled
           ).toList();
 
-          // Tab 2: Completed
           final completedList = controller.allOrders.where((o) =>
             o.status == OrderStatus.completed
           ).toList();
 
-          // Tab 3: Cancelled
           final cancelledList = controller.allOrders.where((o) =>
             o.status == OrderStatus.cancelled
           ).toList();
 
           return TabBarView(
             children: [
-              _buildOrderList(context, activeList, "No active orders"),
-              _buildOrderList(context, completedList, "No completed orders"),
-              _buildOrderList(context, cancelledList, "No cancelled orders"),
+              // Tab Active: Có thể hủy nếu chưa giao hàng
+              _buildOrderList(context, activeList, "No active orders", allowDeleteAction: true),
+              // Tab Completed: Có thể xóa lịch sử
+              _buildOrderList(context, completedList, "No completed orders", allowDeleteAction: true),
+              // Tab Cancelled: Có thể xóa lịch sử
+              _buildOrderList(context, cancelledList, "No cancelled orders", allowDeleteAction: true),
             ],
           );
         }),
@@ -72,7 +72,7 @@ class MyOrderScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderList(BuildContext context, List<Order> orders, String emptyMsg) {
+  Widget _buildOrderList(BuildContext context, List<Order> orders, String emptyMsg, {bool allowDeleteAction = false}) {
     if (orders.isEmpty) {
       return Center(
         child: Column(
@@ -91,13 +91,56 @@ class MyOrderScreen extends StatelessWidget {
       child: ListView.builder(
         padding: const EdgeInsets.all(16.0),
         itemCount: orders.length,
-        itemBuilder: (context, index) => OrderCard(
-          order: orders[index],
-          onViewDetails: () {
-            // Navigate to Order Detail Screen here
-            // Get.to(() => OrderDetailScreen(order: orders[index]));
-          },
-        ),
+        itemBuilder: (context, index) {
+          final order = orders[index];
+
+          bool canDelete = false;
+          if (allowDeleteAction) {
+            if (order.status == OrderStatus.shipping || order.status == OrderStatus.delivering) {
+              canDelete = false;
+            } else {
+              canDelete = true;
+            }
+          }
+
+          return OrderCard(
+            order: order,
+            // Chỉ truyền callback onDelete nếu đủ điều kiện
+            onDelete: canDelete ? () => _showDeleteConfirmDialog(context, order) : null,
+            onViewDetails: () {
+              Get.to(() => MyOrderDetailsScreen(order: order));
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  // Show Confirmation Dialog
+  void _showDeleteConfirmDialog(BuildContext context, Order order) {
+    final isPending = order.status == OrderStatus.pending || order.status == OrderStatus.confirmed;
+    final actionText = isPending ? "Cancel Order" : "Delete History";
+    final contentText = isPending
+        ? "Are you sure you want to cancel this order?"
+        : "Are you sure you want to remove this order from your history?";
+
+    Get.dialog(
+      AlertDialog(
+        title: Text(actionText),
+        content: Text(contentText),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("No", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.deleteOrder(order.id);
+            },
+            child: const Text("Yes", style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

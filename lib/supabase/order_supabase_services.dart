@@ -1,12 +1,14 @@
 import 'package:ecomerceapp/models/cart_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/features/shippingaddress/models/address.dart';
+import 'package:ecomerceapp/features/myorders/model/order.dart' as order_model;
+import 'package:ecomerceapp/features/notification/models/notification_type.dart';
+import 'package:ecomerceapp/features/notification/controller/notification_controller.dart';
 
 class OrderSupabaseService {
   static final _supabase = Supabase.instance.client;
 
-  // --- 1. TẠO ĐƠN HÀNG ---
+  //  TẠO ĐƠN HÀNG & GỬI THÔNG BÁO
   static Future<bool> placeOrder({
     required String userId,
     required String orderNumber,
@@ -27,13 +29,19 @@ class OrderSupabaseService {
       }).select().single();
 
       final orderId = orderRes['id'];
-      print("SUCCESS: Đã tạo Order ID: $orderId");
 
-      // B2: Map dữ liệu từ CartItem (Model của bạn) sang JSON để lưu DB
+      // B2: Map dữ liệu chi tiết & Lấy danh sách Seller cần báo
+      final Set<String> sellerIdsToNotify = {};
+
       final List<Map<String, dynamic>> itemsData = cartItems.map((item) {
+        // Lưu lại sellerId để gửi thông báo
+        if (item.product?.sellerId != null) {
+          sellerIdsToNotify.add(item.product!.sellerId!);
+        }
+
         return {
           'order_id': orderId,
-          'product_id': item.productId, // String nhưng DB tự ép kiểu sang BigInt nếu chuỗi là số
+          'product_id': item.productId,
           'quantity': item.quantity,
           'price_at_purchase': item.product?.price ?? 0,
           'selected_size': item.selectedSize,
@@ -41,10 +49,34 @@ class OrderSupabaseService {
         };
       }).toList();
 
-      // B3: Lưu chi tiết đơn hàng
+      // B3: Insert Order Items
       await _supabase.from('order_items').insert(itemsData);
 
-      print("SUCCESS: Đã tạo xong Order Items");
+      // --- GỬI THÔNG BÁO (REALTIME) ---
+
+      // 1. Thông báo cho Người Bán (Sellers)
+      for (var sellerId in sellerIdsToNotify) {
+        // Bỏ qua nếu tự mua hàng của chính mình
+        if (sellerId == userId) continue;
+
+        NotificationController.sendNotification(
+          receiverId: sellerId,
+          title: "Đơn hàng mới 📦",
+          message: "Bạn nhận được đơn hàng mới #$orderNumber. Hãy vào kiểm tra ngay!",
+          type: NotificationType.order,
+        );
+      }
+
+      // 2. Thông báo xác nhận cho Người Mua (Buyer)
+      NotificationController.sendNotification(
+        receiverId: userId,
+        title: "Đặt hàng thành công ✅",
+        message: "Đơn hàng #$orderNumber của bạn đã được ghi nhận. Chờ Shop xác nhận nhé!",
+        type: NotificationType.order,
+      );
+      // --------------------------------
+
+      print("SUCCESS: Đã tạo đơn và gửi thông báo");
       return true;
 
     } catch (e) {
@@ -53,8 +85,8 @@ class OrderSupabaseService {
     }
   }
 
-  // --- 2. LẤY DANH SÁCH ĐƠN HÀNG (Của User) ---
-  static Future<List<Order>> getMyOrders(String userId) async {
+  // --- 2. LẤY DANH SÁCH ĐƠN HÀNG CỦA USER ---
+  static Future<List<order_model.Order>> getMyOrders(String userId) async {
     try {
       final response = await _supabase
           .from('orders')
@@ -68,64 +100,54 @@ class OrderSupabaseService {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      return (response as List).map((e) => Order.fromSupabaseJson(e)).toList();
+      return (response as List).map((e) => order_model.Order.fromSupabaseJson(e)).toList();
     } catch (e) {
       print("Get Orders Error: $e");
       return [];
     }
   }
 
-  // --- 3. LẤY DANH SÁCH ĐƠN HÀNG (Cho Seller) ---
-  static Future<List<Order>> getSellerOrders(String sellerId) async {
+  // --- 3. LẤY DANH SÁCH ĐƠN HÀNG CHO SELLER ---
+  // Chỉ lấy những đơn có chứa sản phẩm của Seller này
+  static Future<List<order_model.Order>> getSellerOrders(String sellerId) async {
     try {
-      // 1. Query lấy Orders có chứa sản phẩm của Seller này
-      // Dùng !inner để chỉ lấy những đơn hàng nào CÓ sản phẩm của shop
+      // Query: Lấy Order có join với order_items, và order_items join với products
+      // Điều kiện: products.seller_id == sellerId
       final response = await _supabase
           .from('orders')
           .select('''
             *,
             order_items!inner (
               id, product_id, quantity, price_at_purchase, selected_size, selected_color,
-              products!inner (
-                name, images, stock, seller_id
-              )
+              products!inner ( name, images, stock, seller_id )
             )
           ''')
-          .eq('order_items.products.seller_id', sellerId) // Lọc từ phía DB
+          .eq('order_items.products.seller_id', sellerId)
           .order('created_at', ascending: false);
 
       final List<dynamic> data = response as List<dynamic>;
-
-      // 2. Xử lý dữ liệu đầu ra
-      // Mặc dù DB đã lọc orders, nhưng danh sách order_items trả về có thể vẫn chứa món của shop khác (do cơ chế join).
-      // Ta cần lọc thủ công list items một lần nữa trong Dart.
-
-      List<Order> sellerOrders = [];
+      List<order_model.Order> sellerOrders = [];
 
       for (var orderJson in data) {
         // Parse Order từ JSON
-        Order order = Order.fromSupabaseJson(orderJson);
+        order_model.Order order = order_model.Order.fromSupabaseJson(orderJson);
 
-        // Lọc danh sách items: Chỉ giữ lại item nào có seller_id trùng với seller đang đăng nhập
-        // Lưu ý: Logic này yêu cầu ta phải check seller_id từ dữ liệu raw JSON hoặc cập nhật Model OrderItem
-        // Ở đây ta sẽ lọc trực tiếp từ JSON 'order_items' trước khi map vào Model Order nếu có thể,
-        // hoặc lọc trên list items của object Order.
-
-        // Cách đơn giản nhất: Lọc dựa trên dữ liệu raw json order_items
+        // --- LỌC ITEM ---
+        // Một đơn hàng có thể chứa sp của nhiều Shop.
+        // Ta phải lọc list 'items' trong object Order để Seller chỉ thấy sp của mình.
         final rawItems = orderJson['order_items'] as List;
+
         final myItemsJson = rawItems.where((item) {
           final product = item['products'];
           return product != null && product['seller_id'] == sellerId;
         }).toList();
 
-        // Tạo lại order json với danh sách items đã lọc
+        // Hack: Tạo lại JSON với list items đã lọc để parse lại
         final filteredOrderJson = Map<String, dynamic>.from(orderJson);
         filteredOrderJson['order_items'] = myItemsJson;
 
-        // Parse lại thành Object Order hoàn chỉnh chỉ chứa sản phẩm của Shop
-        sellerOrders.add(Order.fromSupabaseJson(filteredOrderJson));
+        sellerOrders.add(order_model.Order.fromSupabaseJson(filteredOrderJson));
       }
-
       return sellerOrders;
     } catch (e) {
       print("Get Seller Orders Error: $e");
@@ -133,9 +155,8 @@ class OrderSupabaseService {
     }
   }
 
-  // ... (Giữ nguyên updateOrderStatus và updateProductStock)
-
-  // 4. CẬP NHẬT TRẠNG THÁI
+  // --- 4. CẬP NHẬT TRẠNG THÁI ---
+  // Việc gửi thông báo cho User khi cập nhật trạng thái được xử lý ở SellerController
   static Future<bool> updateOrderStatus(String orderId, String newStatus) async {
     try {
       await _supabase
@@ -149,10 +170,11 @@ class OrderSupabaseService {
     }
   }
 
-  // 5. TRỪ TỒN KHO
-  static Future<bool> updateProductStock(List<OrderItem> items) async {
+  // --- 5. TRỪ TỒN KHO ---
+  static Future<bool> updateProductStock(List<order_model.OrderItem> items) async {
     try {
       for (var item in items) {
+        // Lấy tồn kho hiện tại
         final productRes = await _supabase
             .from('products')
             .select('stock')
@@ -162,6 +184,7 @@ class OrderSupabaseService {
         final int currentStock = productRes['stock'] ?? 0;
         final int newStock = currentStock - item.quantity;
 
+        // Check không âm
         if (newStock >= 0) {
           await _supabase
               .from('products')
