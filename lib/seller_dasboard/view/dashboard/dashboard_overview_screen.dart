@@ -14,7 +14,6 @@ class DashboardOverviewScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Thống kê nhanh (Cards)
           Row(
             children: [
               Expanded(child: _buildStatCard(context, "Total Sales", "\$12,500", Colors.blue, Icons.attach_money)),
@@ -33,7 +32,6 @@ class DashboardOverviewScreen extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // 2. Biểu đồ doanh thu (Bar Chart)
           Text("Weekly Revenue", style: AppTextStyles.h3),
           const SizedBox(height: 16),
           Container(
@@ -83,7 +81,7 @@ class DashboardOverviewScreen extends StatelessWidget {
                   _makeBarGroup(0, 5, Colors.blue),
                   _makeBarGroup(1, 10, Colors.blue),
                   _makeBarGroup(2, 14, Colors.blue),
-                  _makeBarGroup(3, 18, Colors.orange), // Ngày cao điểm
+                  _makeBarGroup(3, 18, Colors.orange),
                   _makeBarGroup(4, 13, Colors.blue),
                   _makeBarGroup(5, 10, Colors.blue),
                   _makeBarGroup(6, 15, Colors.blue),

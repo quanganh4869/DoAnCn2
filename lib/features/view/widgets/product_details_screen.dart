@@ -391,14 +391,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
-  // Logic Thêm vào giỏ (Sửa đổi quan trọng)
+  // Logic Thêm vào giỏ
   Future<void> _handleAddToCart({required bool isBuyNow}) async {
-    // 1. Validate Size
     if (_getAvailableSizes().isNotEmpty && _selectedSize == null) {
       Get.snackbar(
         "Select Size",
         "Please select a size to continue",
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
         margin: const EdgeInsets.all(16),
@@ -406,18 +405,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       return;
     }
 
-    // 2. Gọi CartController (Không gọi Service trực tiếp)
-    // Controller sẽ tự handle loading state và show snackbar nếu thành công
     final success = await cartController.addToCart(
       product: widget.product,
       quantity: 1,
       selectedSize: _selectedSize,
       selectedColor: _selectedColor,
       showNotification:
-          !isBuyNow, // Nếu mua ngay thì ko cần hiện popup "Added to cart"
+          !isBuyNow,
     );
 
-    // 3. Xử lý Buy Now
     if (success && isBuyNow) {
       Get.to(() => CheckoutScreen());
     }

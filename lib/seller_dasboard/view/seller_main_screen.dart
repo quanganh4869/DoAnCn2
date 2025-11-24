@@ -2,15 +2,22 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/features/notification/view/notification_screen.dart';
 import 'package:ecomerceapp/seller_dasboard/view/order_seller/manage_orders_screen.dart';
+import 'package:ecomerceapp/features/notification/controller/notification_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/view/product_seller/manage_products_screen.dart';
 
-class SellerDashboardScreen extends StatelessWidget {
-  const SellerDashboardScreen({super.key});
+// Import Notification components
+
+class SellerMainScreen extends StatelessWidget {
+  const SellerMainScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
+    // Inject NotificationController to listen to unread counts
+    final notificationController = Get.put(NotificationController());
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -18,10 +25,50 @@ class SellerDashboardScreen extends StatelessWidget {
         title: const Text("Kênh Người Bán"),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+          // --- NOTIFICATION ICON WITH SELLER BADGE ---
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {
+                  // Navigate to Notification Screen with 'seller' filter
+                  Get.to(() => NotificationScreen(filterRole: 'seller'));
+                },
+              ),
+              // Badge for Seller Unread Count
+              Obx(() {
+                final count = notificationController.unreadSellerCount;
+                return count > 0
+                    ? Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Center(
+                            child: Text(
+                              count > 99 ? '99+' : count.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink();
+              }),
+            ],
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -29,7 +76,7 @@ class SellerDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header chào mừng
+            // Header Greeting
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -39,6 +86,13 @@ class SellerDashboardScreen extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  )
+                ],
               ),
               child: Row(
                 children: [
@@ -51,23 +105,27 @@ class SellerDashboardScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        authController.userProfile?.storeName ?? "My Shop",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          authController.userProfile?.storeName ?? "My Shop",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "Chúc bạn buôn may bán đắt!",
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Chúc bạn buôn may bán đắt!",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
                   )
                 ],
               ),
@@ -89,15 +147,6 @@ class SellerDashboardScreen extends StatelessWidget {
               children: [
                 _buildDashboardItem(
                   context,
-                  icon: Icons.inventory_2_outlined,
-                  label: "Sản phẩm",
-                  color: Colors.orange,
-                  onTap: () {
-                    Get.to(() => ManageProductsScreen());
-                  },
-                ),
-                _buildDashboardItem(
-                  context,
                   icon: Icons.list_alt_rounded,
                   label: "Đơn hàng",
                   color: Colors.green,
@@ -107,10 +156,21 @@ class SellerDashboardScreen extends StatelessWidget {
                 ),
                 _buildDashboardItem(
                   context,
+                  icon: Icons.inventory_2_outlined,
+                  label: "Sản phẩm",
+                  color: Colors.orange,
+                  onTap: () {
+                    Get.to(() => ManageProductsScreen());
+                  },
+                ),
+                _buildDashboardItem(
+                  context,
                   icon: Icons.analytics_outlined,
                   label: "Thống kê",
                   color: Colors.purple,
-                  onTap: () {},
+                  onTap: () {
+                    // Get.to(() => AnalyticsScreen());
+                  },
                 ),
                 _buildDashboardItem(
                   context,

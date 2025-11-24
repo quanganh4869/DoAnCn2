@@ -81,7 +81,7 @@ class CartController extends GetxController {
         Get.snackbar(
           "Authentication Required",
           "Please sign in to add your cart",
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
         );
         return false;
       }
@@ -91,7 +91,7 @@ class CartController extends GetxController {
         Get.snackbar(
           "Insufficient Stock",
           "Only $stock items available",
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
         );
         return false;
       }
@@ -112,18 +112,17 @@ class CartController extends GetxController {
           Get.snackbar(
             "Success",
             "Item added to cart",
-            snackPosition: SnackPosition.BOTTOM,
+            snackPosition: SnackPosition.TOP,
           );
         }
       }
       return success;
     } catch (e) {
-      // dùng debugPrint để tránh lint avoid_print
       print("Error adding to cart: $e");
       Get.snackbar(
         "Error",
         "Failed to add your cart",
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
       return false;
     }
@@ -137,7 +136,7 @@ class CartController extends GetxController {
         Get.snackbar(
           "Authentication Required",
           "Please sign in",
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
         );
         return false;
       }
@@ -151,7 +150,7 @@ class CartController extends GetxController {
         Get.snackbar(
           "Insufficient Stock",
           "Only $stock items available",
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
         );
         return false;
       }
@@ -193,7 +192,7 @@ class CartController extends GetxController {
       Get.snackbar(
         "Authentication Required",
         "Please sign in",
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
       );
       return false;
     }

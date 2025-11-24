@@ -4,13 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 
-// Import the standard Order Model
-// Import the Seller Controller
-
 class ManageOrdersScreen extends StatelessWidget {
   ManageOrdersScreen({super.key});
 
-  // Find the existing SellerController (initialized in your dashboard binding)
   final SellerController controller = Get.find<SellerController>();
 
   @override
@@ -75,7 +71,6 @@ class ManageOrdersScreen extends StatelessWidget {
       tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       initiallyExpanded: order.status == OrderStatus.pending,
 
-      // HEADER
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,7 +100,6 @@ class ManageOrdersScreen extends StatelessWidget {
         style: TextStyle(fontSize: 13, color: Colors.grey[700]),
       ),
 
-      // BODY
       children: [
         Container(
           padding: const EdgeInsets.all(16),
@@ -118,7 +112,6 @@ class ManageOrdersScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Shipping Info
               if (order.shippingAddress != null) ...[
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,13 +136,11 @@ class ManageOrdersScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // Product List
               ...order.items.map(
                 (item) => Padding(
                   padding: const EdgeInsets.only(bottom: 12.0),
                   child: Row(
                     children: [
-                      // Product Image
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: Image.network(

@@ -17,7 +17,7 @@ class HomeScreen extends StatelessWidget {
 
   final AuthController authController = Get.put(AuthController());
   final CartController cartController = Get.put(CartController());
-  // 1. Inject Notification Controller để lấy số lượng unread
+  // Inject Notification Controller
   final NotificationController notificationController = Get.put(NotificationController());
 
   @override
@@ -70,16 +70,14 @@ class HomeScreen extends StatelessWidget {
                   }),
                   const Spacer(),
 
-                  // --- 2. NOTIFICATION ICON WITH BADGE ---
                   Stack(
                     children: [
                       IconButton(
-                        onPressed: () => Get.to(() => NotificationScreen()),
+                        onPressed: () => Get.to(() => NotificationScreen(filterRole: 'user')),
                         icon: const Icon(Icons.notifications_outlined),
                       ),
-                      // Lắng nghe số lượng chưa đọc
                       Obx(() {
-                        final count = notificationController.unreadCount.value;
+                        final count = notificationController.unreadUserCount;
                         return count > 0
                             ? Positioned(
                                 right: 8,
@@ -111,7 +109,7 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
 
-                  // --- CART ICON WITH BADGE ---
+                  // --- 2. CART ICON ---
                   Stack(
                     children: [
                       IconButton(
@@ -149,7 +147,7 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
 
-                  // 3. Icon Theme
+                  // 3. Theme Icon
                   GetBuilder<ThemeController>(
                     builder: (controller) => IconButton(
                       onPressed: () => controller.toggleTheme(),
@@ -163,16 +161,18 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
+
             const CustomSearchBar(),
             const CategoryChips(),
             const SaleBanner(),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    "Popular Product",
+                    "Sản phẩm đề xuất",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   GestureDetector(
@@ -182,6 +182,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
+
             const Expanded(child: ProductGrid()),
           ],
         ),

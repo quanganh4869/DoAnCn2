@@ -6,7 +6,7 @@ import 'package:ecomerceapp/features/view/signin_screen.dart';
 import 'package:ecomerceapp/features/view/setting_screen.dart';
 import 'package:ecomerceapp/seller_dasboard/view/seller_signup.dart';
 import 'package:ecomerceapp/features/myorders/view/my_order_screen.dart';
-import 'package:ecomerceapp/seller_dasboard/view/seller_dasboard_screen.dart';
+import 'package:ecomerceapp/seller_dasboard/view/seller_main_screen.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 import 'package:ecomerceapp/admin_dashboard/view/dashboard_admin/admin_dasboard.dart';
 import 'package:ecomerceapp/features/edit_profile/views/screens/edit_profile_screen.dart';
@@ -164,7 +164,7 @@ class AccountScreen extends StatelessWidget {
                   "Switch to Seller Mode",
                   () {
                     sellerController.toggleSellerMode();
-                    Get.to(() => const SellerDashboardScreen());
+                    Get.to(() => const SellerMainScreen());
                   },
                   textColor: Colors.green,
                 );

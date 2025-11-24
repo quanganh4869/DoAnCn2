@@ -25,7 +25,6 @@ class Seller {
     return Seller(
       id: json['id'].toString(),
       userId: json['user_id'] ?? '',
-      // FIX: Lấy từ cột 'brand_name' thay vì 'shop_name'
       shopName: json['brand_name'] ?? json['shop_name'] ?? 'Unknown Shop',
       shopDescription: json['shop_description'],
       businessEmail: json['business_email'],
@@ -39,7 +38,6 @@ class Seller {
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
-      // FIX: Gửi lên với key 'brand_name'
       'brand_name': shopName,
       'shop_description': shopDescription,
       'business_email': businessEmail,

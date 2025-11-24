@@ -11,26 +11,30 @@ import 'package:ecomerceapp/supabase/order_supabase_services.dart';
 import 'package:ecomerceapp/features/notification/models/notification_type.dart';
 import 'package:ecomerceapp/features/notification/controller/notification_controller.dart';
 
-
 class SellerController extends GetxController {
   final _supabase = Supabase.instance.client;
   final AuthController _authController = Get.find<AuthController>();
 
+  // State
   var isSellerMode = false.obs;
   var isLoading = false.obs;
+
+  // Data
   var myProducts = <Products>[].obs;
   var orders = <Order>[].obs;
 
+  // Subscriptions
   StreamSubscription<List<Map<String, dynamic>>>? _shopStatusSubscription;
   RealtimeChannel? _ordersSubscription;
 
   @override
   void onInit() {
     super.onInit();
-    // Automatically setup listeners when user profile loads
+    // Listen to User Profile to determine if we should start Seller Logic
     ever(_authController.userProfileRx, (UserProfile? profile) {
       if (profile != null) {
         _setupShopStatusListener(profile.id);
+        // If already in seller mode (e.g. re-opening app), start listening to orders
         if (isSellerMode.value) {
           _setupOrderRealtimeListener();
         }
@@ -61,7 +65,9 @@ class SellerController extends GetxController {
     _ordersSubscription?.unsubscribe();
   }
 
-  // --- 1. LISTEN FOR SHOP APPROVAL ---
+  // --- 1. LISTENERS ---
+
+  // Listen for Shop Approval Status
   void _setupShopStatusListener(String userId) {
     _shopStatusSubscription?.cancel();
     _shopStatusSubscription = _supabase
@@ -74,12 +80,11 @@ class SellerController extends GetxController {
         final newStatus = updatedProfile.sellerStatus;
         final oldStatus = _authController.userProfile?.sellerStatus;
 
-        // If shop is just approved/active
+        // Triggered when shop is approved
         if (oldStatus != 'active' && (newStatus == 'active' || newStatus == 'approved')) {
           _showSuccessSnackbar("Congratulations!", "Your shop has been approved.");
           isSellerMode.value = true;
 
-          // Load data immediately
           fetchSellerProducts();
           fetchSellerOrders();
           _setupOrderRealtimeListener();
@@ -89,13 +94,13 @@ class SellerController extends GetxController {
     });
   }
 
-  // --- 2. LISTEN FOR NEW ORDERS (REALTIME) ---
+  // Listen for New Orders (Realtime)
   void _setupOrderRealtimeListener() {
     if (_ordersSubscription != null) {
       _supabase.removeChannel(_ordersSubscription!);
     }
 
-    // Listen to 'order_items' table since that's where seller products appear
+    // Subscribe to 'order_items' to detect incoming orders for this shop
     _ordersSubscription = _supabase.channel('public:order_items').onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -107,7 +112,7 @@ class SellerController extends GetxController {
     ).subscribe();
   }
 
-  // --- 3. SELLER REGISTRATION & MODE TOGGLE ---
+  // --- 2. SELLER ACCOUNT MANAGEMENT ---
 
   Future<bool> registerSeller({
     required String storeName, required String description,
@@ -154,11 +159,13 @@ class SellerController extends GetxController {
     if (user.sellerStatus == 'active' || user.sellerStatus == 'approved') {
       isSellerMode.value = !isSellerMode.value;
       if (isSellerMode.value) {
+        // Enable Seller Mode
         fetchSellerProducts();
         fetchSellerOrders();
         _setupOrderRealtimeListener();
         _showInfoSnackbar("Mode", "Seller Dashboard");
       } else {
+        // Disable Seller Mode (User Mode)
         _ordersSubscription?.unsubscribe();
         _ordersSubscription = null;
         _showInfoSnackbar("Mode", "Shopping");
@@ -166,7 +173,8 @@ class SellerController extends GetxController {
     }
   }
 
-  // --- 4. PRODUCT MANAGEMENT ---
+  // --- 3. PRODUCT MANAGEMENT ---
+
   Future<void> fetchSellerProducts() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -213,18 +221,18 @@ class SellerController extends GetxController {
 
   void _refreshGlobalProducts() { if (Get.isRegistered<ProductController>()) { Get.find<ProductController>().loadProducts(); } }
 
-  // --- 5. ORDER MANAGEMENT (WITH FILTERING & NOTIFICATIONS) ---
+  // --- 4. ORDER MANAGEMENT ---
 
   void fetchSellerOrders() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
 
     try {
-      // 1. Get all orders containing this shop's products
+      // 1. Get all orders that contain this seller's products
       final result = await OrderSupabaseService.getSellerOrders(userId);
 
-      // 2. FILTER: Only show orders where the BUYER is NOT the current SELLER
-      // This separates "User Mode" orders from "Seller Mode" incoming orders
+      // 2. FILTER: Only show orders from OTHER users (Buyer != Seller)
+      // This ensures you don't see your own "Shopping" orders in your "Seller Dashboard"
       final customerOrders = result.where((order) => order.userId != userId).toList();
 
       orders.value = customerOrders;
@@ -237,11 +245,11 @@ class SellerController extends GetxController {
     try {
       isLoading.value = true;
 
-      // Stock deduction logic
+      // Stock Check Logic
       if (order.status == OrderStatus.pending && nextStatus == OrderStatus.confirmed) {
         final stockUpdated = await OrderSupabaseService.updateProductStock(order.items);
         if (!stockUpdated) {
-          Get.snackbar("Out of Stock", "Not enough stock to confirm this order!", backgroundColor: Colors.red.withOpacity(0.1), colorText: Colors.red, snackPosition: SnackPosition.TOP);
+          Get.snackbar("Out of Stock", "Not enough stock inventory to confirm this order!", backgroundColor: Colors.red.withOpacity(0.1), colorText: Colors.red, snackPosition: SnackPosition.TOP);
           isLoading.value = false;
           return;
         }
@@ -267,17 +275,16 @@ class SellerController extends GetxController {
           default: return;
         }
 
-        // Prepare metadata list for all items in the order
+        // Prepare Metadata (List of items) for the notification
         final itemsMetadata = order.items.map((item) => {
           'productName': item.productName,
           'productImage': item.productImage,
-          'price': "\$${item.price}",
+          'price': item.price,
           'quantity': item.quantity,
           'size': item.selectedSize,
           'color': item.selectedColor,
         }).toList();
 
-        // Send notification with product details
         NotificationController.sendNotification(
           receiverId: order.userId,
           title: title,
@@ -285,7 +292,8 @@ class SellerController extends GetxController {
           type: type,
           metadata: {
             'orderId': order.orderNumber,
-            'items': itemsMetadata, // Send list of items for detail view
+            'role': 'user', // Mark as notification for User
+            'items': itemsMetadata,
           },
         );
 
@@ -300,7 +308,7 @@ class SellerController extends GetxController {
     }
   }
 
-  // --- SNACKBAR HELPERS ---
+  // --- HELPERS ---
   void _showSuccessSnackbar(String t, String m) => Get.rawSnackbar(title: t, message: m, backgroundColor: Colors.green, snackPosition: SnackPosition.TOP, margin: const EdgeInsets.all(10), borderRadius: 10, icon: const Icon(Icons.check_circle, color: Colors.white));
   void _showErrorSnackbar(String t, String m) => Get.rawSnackbar(title: t, message: m, backgroundColor: Colors.red, snackPosition: SnackPosition.TOP, margin: const EdgeInsets.all(10), borderRadius: 10, icon: const Icon(Icons.error, color: Colors.white));
   void _showInfoSnackbar(String t, String m) => Get.rawSnackbar(title: t, message: m, backgroundColor: Colors.blue, snackPosition: SnackPosition.TOP, margin: const EdgeInsets.all(10), borderRadius: 10, icon: const Icon(Icons.info, color: Colors.white));
