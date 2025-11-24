@@ -57,26 +57,28 @@ class NotificationController extends GetxController {
   }
 
   // 2. Hàm Gửi thông báo (Static để gọi ở mọi nơi)
-  static Future<void> sendNotification({
+   static Future<void> sendNotification({
     required String receiverId,
     required String title,
     required String message,
     required NotificationType type,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       await Supabase.instance.client.from('notifications').insert({
         'user_id': receiverId,
         'title': title,
         'message': message,
-        'type': type.name, // Lưu dạng string vào DB
+        'type': type.name,
         'is_read': false,
+        'metadata': metadata ?? {},
       });
     } catch (e) {
       print("Error sending notification: $e");
     }
   }
 
-  // 3. Đánh dấu đã đọc tất cả
+  //  Đánh dấu đã đọc tất cả
   Future<void> markAllAsRead() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -86,5 +88,12 @@ class NotificationController extends GetxController {
         .update({'is_read': true})
         .eq('user_id', userId)
         .eq('is_read', false);
+  }
+    //  Đánh dấu đã đọc từng thông báo
+   Future<void> markAsRead(String notificationId) async {
+    await _supabase
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('id', notificationId);
   }
 }

@@ -8,6 +8,7 @@ class NotificationItem {
   final String message;
   final DateTime date;
   final bool isRead;
+  final Map<String, dynamic>? metadata;
 
   NotificationItem({
     required this.id,
@@ -17,6 +18,7 @@ class NotificationItem {
     required this.message,
     required this.date,
     this.isRead = false,
+    this.metadata,
   });
 
   factory NotificationItem.fromSupabaseJson(Map<String, dynamic> json) {
@@ -28,6 +30,10 @@ class NotificationItem {
       isRead: json['is_read'] ?? false,
       date: DateTime.parse(json['created_at']).toLocal(),
       type: _parseType(json['type']),
+      // Fix: Kiểm tra kỹ kiểu dữ liệu của metadata
+      metadata: json['metadata'] is Map
+          ? Map<String, dynamic>.from(json['metadata'])
+          : null,
     );
   }
 
