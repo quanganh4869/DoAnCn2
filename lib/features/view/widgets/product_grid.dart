@@ -76,11 +76,30 @@ class ProductGrid extends StatelessWidget {
           );
         }
 
+        double screenWidth = MediaQuery.of(context).size.width;
+
+        int crossAxisCount;
+        double childAspectRatio;
+
+        if (screenWidth > 1200) {
+          crossAxisCount = 5;
+          childAspectRatio = 0.65;
+        } else if (screenWidth > 900) {
+          crossAxisCount = 4;
+          childAspectRatio = 0.65;
+        } else if (screenWidth > 600) {
+          crossAxisCount = 3;
+          childAspectRatio = 0.62;
+        } else {
+          crossAxisCount = 2;
+          childAspectRatio = 0.58;
+        }
+
         return GridView.builder(
           padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
           ),
@@ -91,8 +110,7 @@ class ProductGrid extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      ProductDetailsScreen(product: product),
+                  builder: (context) => ProductDetailsScreen(product: product),
                 ),
               ),
               child: ProductCard(product: product),

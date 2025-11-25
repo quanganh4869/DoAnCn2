@@ -220,13 +220,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         ),
                       ),
 
-                      // Nếu có tên Brand thì hiển thị
                       if (widget.product.brand != null && widget.product.brand!.isNotEmpty) ...[
-                        const SizedBox(width: 12),
-                        Text("|", style: TextStyle(color: Colors.grey[400])),
+                        const SizedBox(width: 24),
+                        Text("| Brand: ", style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold)),
                         const SizedBox(width: 12),
 
-                        // Bấm vào Brand để sang trang Shop
                         InkWell(
                           onTap: () {
                             Get.to(() => ShopDetailScreen(brandName: widget.product.brand!));

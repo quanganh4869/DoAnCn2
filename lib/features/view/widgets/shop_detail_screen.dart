@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
+import 'package:ecomerceapp/controller/review_controller.dart';
 import 'package:ecomerceapp/controller/product_controller.dart';
 import 'package:ecomerceapp/features/view/widgets/product_card.dart';
-import 'package:ecomerceapp/controller/review_controller.dart'; // Import ReviewController
 
 class ShopDetailScreen extends StatefulWidget {
   final String brandName;
@@ -16,25 +16,20 @@ class ShopDetailScreen extends StatefulWidget {
 
 class _ShopDetailScreenState extends State<ShopDetailScreen> {
   final ProductController productController = Get.find<ProductController>();
-  // Inject ReviewController để gọi hàm getProductRatingStat
   final ReviewController reviewController = Get.put(ReviewController());
 
   late List<Products> shopProducts;
   late List<Products> filteredProducts;
   final TextEditingController _searchController = TextEditingController();
 
-  // Thống kê Shop
   double _shopRating = 0.0;
   int _totalReviews = 0;
-  bool _isLoadingStats = true; // Biến loading riêng cho phần rating
-
-  // Trạng thái Follow
+  bool _isLoadingStats = true;
   bool _isFollowing = false;
 
   @override
   void initState() {
     super.initState();
-    // 1. Lọc sản phẩm theo Brand
     shopProducts = productController.allProducts
         .where((p) =>
             p.brand != null &&
@@ -42,12 +37,9 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
         .toList();
 
     filteredProducts = shopProducts;
-
-    // 2. Gọi hàm tính toán Rating từ Service
     _calculateShopRatingFromService();
   }
 
-  // --- TÍNH TOÁN RATING SHOP TỪ REVIEW CONTROLLER ---
   Future<void> _calculateShopRatingFromService() async {
     if (shopProducts.isEmpty) {
       if (mounted) setState(() => _isLoadingStats = false);
@@ -58,7 +50,6 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
       double totalWeightedScore = 0;
       int totalCount = 0;
 
-      // Gọi song song (Parallel) tất cả các request để tiết kiệm thời gian
       final futures = shopProducts.map((p) => reviewController.getProductRatingStat(p.id));
       final results = await Future.wait(futures);
 
@@ -67,7 +58,6 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
         final int count = stat['count'] ?? 0;
 
         if (count > 0) {
-          // Tính tổng điểm trọng số (Rating * Số lượng người đánh giá)
           totalWeightedScore += (rating * count);
           totalCount += count;
         }
@@ -76,13 +66,12 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
       if (mounted) {
         setState(() {
           _totalReviews = totalCount;
-          // Tránh chia cho 0
           _shopRating = totalCount > 0 ? totalWeightedScore / totalCount : 0.0;
           _isLoadingStats = false;
         });
       }
     } catch (e) {
-      print("Error calculating shop rating: $e");
+      debugPrint("Error calculating shop rating: $e");
       if (mounted) setState(() => _isLoadingStats = false);
     }
   }
@@ -103,10 +92,9 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     setState(() {
       _isFollowing = !_isFollowing;
     });
-
     Get.snackbar(
       _isFollowing ? "Đã theo dõi" : "Đã hủy theo dõi",
-      _isFollowing ? "Bạn sẽ nhận được thông báo mới từ shop ${widget.brandName}" : "Đã hủy đăng ký nhận tin từ shop.",
+      _isFollowing ? "Bạn sẽ nhận được thông báo mới từ shop." : "Đã hủy đăng ký nhận tin.",
       snackPosition: SnackPosition.TOP,
       backgroundColor: _isFollowing ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
       colorText: _isFollowing ? Colors.green : Colors.red,
@@ -127,13 +115,34 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
 
+    // --- CẤU HÌNH RESPONSIVE GRID ---
+    final screenWidth = MediaQuery.of(context).size.width;
+    int crossAxisCount;
+    double childAspectRatio;
+
+    if (screenWidth > 900) {
+       crossAxisCount = 4;
+       childAspectRatio = 0.75;
+    } else if (screenWidth > 600) {
+       crossAxisCount = 3;
+       childAspectRatio = 0.7;
+    } else {
+       crossAxisCount = 2;
+       // --- CHỈNH ĐỘ RỘNG THẺ Ở ĐÂY ---
+       // Số càng lớn => Thẻ càng ngắn (trông rộng hơn)
+       // Số càng nhỏ => Thẻ càng dài (trông ốm hơn)
+       // 0.64 là mức cân bằng, bạn có thể thử lên 0.68 nếu muốn rộng hơn nữa
+       childAspectRatio = 0.64;
+    }
+
     return Scaffold(
       backgroundColor: isDark ? Colors.black : Colors.grey[50],
       body: CustomScrollView(
         slivers: [
-          // --- 1. SLIVER APP BAR (HEADER) ---
+          // --- 1. SLIVER APP BAR (HEADER ĐÃ SỬA) ---
           SliverAppBar(
-            expandedHeight: 200.0,
+            // Tăng chiều cao lên xíu để chứa đủ 2 dòng thông tin
+            expandedHeight: 220.0,
             floating: false,
             pinned: true,
             backgroundColor: primaryColor,
@@ -145,6 +154,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Nền Gradient
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -154,94 +164,114 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                       ),
                     ),
                   ),
+                  // Icon trang trí nền
                   Positioned(
                     right: -50,
                     top: -50,
                     child: Icon(Icons.store, size: 250, color: Colors.white.withOpacity(0.1)),
                   ),
-                  Positioned(
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              widget.brandName.isNotEmpty ? widget.brandName[0].toUpperCase() : "S",
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.brandName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  _buildShopStat("${shopProducts.length}", "Sản phẩm"),
-                                  const SizedBox(width: 12),
-                                  Container(width: 1, height: 12, color: Colors.white54),
-                                  const SizedBox(width: 12),
 
-                                  // Hiển thị Loading hoặc Kết quả Rating
-                                  _isLoadingStats
-                                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                      : _buildShopStat(
-                                          _shopRating > 0 ? _shopRating.toStringAsFixed(1).replaceAll('.', ',') : "N/A",
-                                          "Rating ($_totalReviews)"
-                                        ),
+                  // --- PHẦN THÔNG TIN ĐÃ SỬA ---
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min, // Chỉ chiếm chiều cao cần thiết
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Hàng 1: Logo + Tên + Rating
+                        Row(
+                          children: [
+                            // Logo Shop
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  )
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: _toggleFollow,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isFollowing ? Colors.white.withOpacity(0.2) : Colors.white,
-                            foregroundColor: _isFollowing ? Colors.white : primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: _isFollowing ? const BorderSide(color: Colors.white) : BorderSide.none,
+                              child: Center(
+                                child: Text(
+                                  widget.brandName.isNotEmpty ? widget.brandName[0].toUpperCase() : "S",
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            elevation: _isFollowing ? 0 : 2,
-                          ),
-                          child: Text(
-                            _isFollowing ? "Đang theo dõi" : "Theo dõi",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            const SizedBox(width: 12),
+
+                            // Tên và Thông số
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.brandName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      _buildShopStat("${shopProducts.length}", "Sản phẩm"),
+                                      const SizedBox(width: 12),
+                                      Container(width: 1, height: 12, color: Colors.white54),
+                                      const SizedBox(width: 12),
+                                      _isLoadingStats
+                                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                          : _buildShopStat(
+                                              _shopRating > 0 ? _shopRating.toStringAsFixed(1).replaceAll('.', ',') : "N/A",
+                                              "Rating ($_totalReviews)"
+                                            ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Hàng 2: Nút Theo Dõi (Full Width)
+                        // Đưa nút xuống dưới giúp không bao giờ bị lỗi tràn màn hình
+                        SizedBox(
+                          width: double.infinity,
+                          height: 36,
+                          child: ElevatedButton(
+                            onPressed: _toggleFollow,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isFollowing ? Colors.white.withOpacity(0.2) : Colors.white,
+                              foregroundColor: _isFollowing ? Colors.white : primaryColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8), // Bo góc nhẹ cho nút dài
+                                side: _isFollowing ? const BorderSide(color: Colors.white) : BorderSide.none,
+                              ),
+                              elevation: _isFollowing ? 0 : 2,
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: Text(
+                              _isFollowing ? "Đang theo dõi" : "Theo dõi Shop",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
                           ),
                         ),
                       ],
@@ -260,7 +290,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                 controller: _searchController,
                 onChanged: _filterProducts,
                 decoration: InputDecoration(
-                  hintText: "Tìm trong shop ${widget.brandName}...",
+                  hintText: "Tìm trong shop ...",
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
@@ -297,9 +327,9 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.7,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: childAspectRatio, // Sử dụng tỷ lệ đã tính ở trên
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                 ),
