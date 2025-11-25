@@ -30,11 +30,9 @@ class SellerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Listen to User Profile to determine if we should start Seller Logic
     ever(_authController.userProfileRx, (UserProfile? profile) {
       if (profile != null) {
         _setupShopStatusListener(profile.id);
-        // If already in seller mode (e.g. re-opening app), start listening to orders
         if (isSellerMode.value) {
           _setupOrderRealtimeListener();
         }
@@ -43,7 +41,6 @@ class SellerController extends GetxController {
       }
     });
 
-    // Initial check
     if (_authController.userProfile != null) {
       _setupShopStatusListener(_authController.userProfile!.id);
     }
@@ -228,16 +225,50 @@ class SellerController extends GetxController {
     if (userId == null) return;
 
     try {
-      // 1. Get all orders that contain this seller's products
       final result = await OrderSupabaseService.getSellerOrders(userId);
-
-      // 2. FILTER: Only show orders from OTHER users (Buyer != Seller)
-      // This ensures you don't see your own "Shopping" orders in your "Seller Dashboard"
       final customerOrders = result.where((order) => order.userId != userId).toList();
-
       orders.value = customerOrders;
     } catch (e) {
       debugPrint("Error fetching orders: $e");
+    }
+  }
+Future<bool> updateShopSettings({
+    required String storeName,
+    required String description,
+    required String phone,
+    required String address,
+  }) async {
+    final user = _authController.userProfile;
+    if (user == null) return false;
+
+    isLoading.value = true;
+    try {
+      final updateData = {
+        'shop_name': storeName,
+        'shop_description': description,
+        'shop_phone': phone,
+        'shop_address': address,
+      };
+
+      // Update Supabase
+      await _supabase.from('users').update(updateData).eq('id', user.id);
+
+      // Update Local State
+      final updatedProfile = user.copyWith(
+        storeName: storeName,
+        storeDescription: description,
+        shopPhone: phone,
+        shopAddress: address,
+      );
+      await _authController.updateLocalProfile(updatedProfile);
+
+      _showSuccessSnackbar("Thành công", "Thông tin Shop đã được cập nhật!");
+      return true;
+    } catch (e) {
+      _showErrorSnackbar("Lỗi", "Cập nhật thất bại: $e");
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -261,7 +292,6 @@ class SellerController extends GetxController {
         _showSuccessSnackbar("Success", "Order status updated to: ${nextStatus.name}");
         fetchSellerOrders();
 
-        // --- SEND NOTIFICATION TO USER ---
         String msg = "";
         String title = "Order Update 🔔";
         NotificationType type = NotificationType.order;
@@ -292,7 +322,7 @@ class SellerController extends GetxController {
           type: type,
           metadata: {
             'orderId': order.orderNumber,
-            'role': 'user', // Mark as notification for User
+            'role': 'user',
             'items': itemsMetadata,
           },
         );

@@ -9,10 +9,12 @@ import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/controller/order_controller.dart';
 import 'package:ecomerceapp/features/view/splash_screen.dart';
 import 'package:ecomerceapp/controller/theme_controller.dart';
+import 'package:ecomerceapp/controller/review_controller.dart';
 import 'package:ecomerceapp/controller/address_controller.dart';
 import 'package:ecomerceapp/controller/product_controller.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
 import 'package:ecomerceapp/controller/category_controller.dart';
+import 'package:ecomerceapp/controller/dashboard_controller.dart';
 import 'package:ecomerceapp/controller/navigation_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 
@@ -31,6 +33,8 @@ Future<void> main() async {
   Get.put(SellerController());
   Get.put(OrderController());
   Get.put(AddressController());
+  Get.put(DashboardController());
+  Get.put(ReviewController());
 
 
   await SupabaseDataSeeder.seedAllData();

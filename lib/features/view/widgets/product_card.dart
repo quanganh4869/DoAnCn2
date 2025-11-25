@@ -41,7 +41,7 @@ class ProductCard extends StatelessWidget {
 
     // Padding và Spacing
     final contentPadding = screenWidth < 350 ? 6.0 : kMobilePadding;
-    final verticalSpacing = isTablet ? 12.0 : 4.0; // Giảm spacing dọc để tiết kiệm chỗ
+    final verticalSpacing = isTablet ? 12.0 : 4.0;
 
     return Container(
       constraints: BoxConstraints(
