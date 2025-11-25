@@ -15,8 +15,6 @@ class ReviewController extends GetxController {
       isLoading.value = true;
       print("📝 Đang tải Review cho Product ID: $productId");
 
-      // Query bảng reviews và join với bảng users
-      // Lưu ý: Nếu bảng user của bạn tên là 'profiles' thì đổi 'users' thành 'profiles'
       final response = await _supabase
           .from('reviews')
           .select('*, users(full_name, user_image)')
@@ -33,16 +31,40 @@ class ReviewController extends GetxController {
       reviews.value = data.map((e) => Review.fromSupabaseJson(e)).toList();
 
       _calculateAverage();
-
     } catch (e) {
       print("❌ LỖI TẢI REVIEW: $e");
-      // Nếu lỗi do không join được bảng users, thử tải review thô không cần user info
       if (e.toString().contains("users") || e.toString().contains("relation")) {
-         print("⚠️ Thử tải lại review không kèm thông tin user...");
-         await _fetchRawReviews(productId);
+        print("⚠️ Thử tải lại review không kèm thông tin user...");
+        await _fetchRawReviews(productId);
       }
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getProductRatingStat(String productId) async {
+    try {
+      final response = await _supabase
+          .from('reviews')
+          .select('rating')
+          .eq('product_id', productId);
+
+      final reviewsList = response as List;
+
+      if (reviewsList.isEmpty) {
+        return {'rating': 0.0, 'count': 0};
+      }
+
+      final total = reviewsList.fold(
+        0,
+        (sum, item) => sum + (item['rating'] as int),
+      );
+      final avg = total / reviewsList.length;
+
+      return {'rating': avg, 'count': reviewsList.length};
+    } catch (e) {
+      // print("Error fetching rating stat: $e");
+      return {'rating': 0.0, 'count': 0};
     }
   }
 
@@ -83,7 +105,9 @@ class ReviewController extends GetxController {
     }
 
     try {
-      print("📝 Đang gửi đánh giá: User=${user.id}, Product=$productId, Rating=$rating");
+      print(
+        "📝 Đang gửi đánh giá: User=${user.id}, Product=$productId, Rating=$rating",
+      );
 
       await _supabase.from('reviews').insert({
         'user_id': user.id,
@@ -103,6 +127,7 @@ class ReviewController extends GetxController {
       return false;
     }
   }
+
   void _calculateAverage() {
     if (reviews.isEmpty) {
       averageRating.value = 0.0;

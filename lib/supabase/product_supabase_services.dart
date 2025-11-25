@@ -10,7 +10,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users để lấy tên shop
+          .select('*, users(shop_name, full_name)')
           .eq('is_active', true)
           .order('created_at', ascending: false);
 
@@ -34,7 +35,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users
+          .select('*, users(shop_name, full_name)')
           .eq('id', productId)
           .maybeSingle();
 
@@ -77,7 +79,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users
+          .select('*, users(shop_name, full_name)')
           .gte('price', minPrice)
           .lte('price', maxPrice)
           .eq('is_active', true)
@@ -127,7 +130,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users
+          .select('*, users(shop_name, full_name)')
           .eq('is_active', true)
           .eq('category', category)
           .order('created_at', ascending: false);
@@ -152,7 +156,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users
+          .select('*, users(shop_name, full_name)')
           .eq('is_active', true)
           .eq('is_featured', true)
           .order('created_at', ascending: false)
@@ -178,7 +183,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users
+          .select('*, users(shop_name, full_name)')
           .eq('is_active', true)
           .eq('is_on_sale', true)
           .order('created_at', ascending: false);
@@ -203,7 +209,8 @@ class ProductSupabaseServices {
     try {
       final response = await _supabase
           .from(_productTable)
-          .select()
+          // FIX: Thêm join users
+          .select('*, users(shop_name, full_name)')
           .ilike('name', '%$searchTerm%')
           .eq('is_active', true);
 
@@ -221,4 +228,24 @@ class ProductSupabaseServices {
       return [];
     }
   }
+  Future<Map<String, dynamic>> fetchProductRating(String productId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      final response = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('product_id', productId);
+
+      final reviews = response as List;
+      if (reviews.isEmpty) return {'rating': 0.0, 'count': 0};
+
+      final total = reviews.fold(0, (sum, item) => sum + (item['rating'] as int));
+      final avg = total / reviews.length;
+
+      return {'rating': avg, 'count': reviews.length};
+    } catch (e) {
+      return {'rating': 0.0, 'count': 0};
+    }
+  }
+
 }

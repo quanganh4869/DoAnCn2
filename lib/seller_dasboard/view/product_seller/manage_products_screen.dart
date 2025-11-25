@@ -4,36 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/review.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/controller/review_controller.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
+import 'package:ecomerceapp/controller/product_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/view/product_seller/add_product_screen.dart';
 
 class ManageProductsScreen extends StatelessWidget {
   const ManageProductsScreen({super.key});
 
-  // Hàm phụ trợ lấy rating thực tế từ DB
-  Future<Map<String, dynamic>> _fetchProductRating(String productId) async {
-    final supabase = Supabase.instance.client;
-    try {
-      // Lấy tất cả review của sản phẩm này
-      final response = await supabase
-          .from('reviews')
-          .select('rating')
-          .eq('product_id', productId);
-
-      final reviews = response as List;
-      if (reviews.isEmpty) return {'rating': 0.0, 'count': 0};
-
-      final total = reviews.fold(0, (sum, item) => sum + (item['rating'] as int));
-      final avg = total / reviews.length;
-
-      return {'rating': avg, 'count': reviews.length};
-    } catch (e) {
-      return {'rating': 0.0, 'count': 0};
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -214,11 +194,9 @@ class ManageProductsScreen extends StatelessWidget {
 
                       const SizedBox(height: 6),
 
-                      // --- PHẦN MỚI: HIỂN THỊ RATING THỰC TẾ (FutureBuilder) ---
                       FutureBuilder<Map<String, dynamic>>(
-                        future: _fetchProductRating(product.id),
+                        future: reviewController.getProductRatingStat(product.id),
                         builder: (context, snapshot) {
-                          // Mặc định dùng dữ liệu từ model nếu chưa load xong
                           double rating = product.rating;
                           int count = product.reviewCount;
 

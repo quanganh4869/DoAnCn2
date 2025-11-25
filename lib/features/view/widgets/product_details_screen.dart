@@ -10,11 +10,9 @@ import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/controller/review_controller.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
+import 'package:ecomerceapp/features/view/widgets/shop_detail_screen.dart';
 import 'package:ecomerceapp/features/checkout/screens/checkout_screen.dart';
 
-// Import Controllers
-
-// Import Screens & Widgets
 
 class ProductDetailsScreen extends StatefulWidget {
   final Products product;
@@ -26,21 +24,16 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   String? _selectedSize;
-
-  // State cho phần viết Review
   int _userRating = 5;
   final TextEditingController _reviewController = TextEditingController();
 
-  // Controllers
   late final CartController cartController;
   late final WishlistController wishlistController;
-  // Dùng put để tạo mới hoặc find nếu đã có
   final ReviewController reviewController = Get.put(ReviewController());
 
   @override
   void initState() {
     super.initState();
-
     if (Get.isRegistered<CartController>()) {
       cartController = Get.find<CartController>();
     } else {
@@ -53,18 +46,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       wishlistController = Get.put(WishlistController());
     }
 
-    // Load review ngay khi vào trang
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       // Thử ép kiểu ID sang int (vì DB sản phẩm thường dùng BigInt)
-       // Nếu DB của bạn dùng UUID (chuỗi), bạn cần sửa ReviewController nhận String.
-       int? productId = int.tryParse(widget.product.id);
-
-       if (productId != null) {
-         print("Fetching reviews for Product ID: $productId");
-         reviewController.fetchReviews(productId);
-       } else {
-         print("⚠️ Cảnh báo: ID sản phẩm '${widget.product.id}' không phải số nguyên. Không thể tải đánh giá.");
-       }
+      int? productId = int.tryParse(widget.product.id);
+      if (productId != null) {
+        reviewController.fetchReviews(productId);
+      }
     });
   }
 
@@ -93,7 +79,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -122,24 +107,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
         ],
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. HEADER IMAGE
             _buildImageHeader(size, isDark),
-
             const SizedBox(height: 20),
-
-            // 2. MAIN CONTENT
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name & Wishlist
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -156,19 +135,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       _buildWishlistButton(),
                     ],
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Rating Badge
                   Obx(() {
                     double displayRating = widget.product.rating;
                     int displayCount = widget.product.reviewCount;
-
                     if (reviewController.reviews.isNotEmpty) {
                       displayRating = reviewController.averageRating.value;
                       displayCount = reviewController.reviews.length;
                     }
-
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -192,15 +166,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ),
                     );
                   }),
-
                   const SizedBox(height: 20),
-
-                  // Price & Stock Status
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "${priceFormatter.format(widget.product.price)} đ",
+                        "${priceFormatter.format(widget.product.price)} VND",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -210,7 +181,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       const SizedBox(width: 10),
                       if (widget.product.oldPrice != null)
                         Text(
-                          "${priceFormatter.format(widget.product.oldPrice)} đ",
+                          "${priceFormatter.format(widget.product.oldPrice)} VND",
                           style: TextStyle(
                             fontSize: 16,
                             decoration: TextDecoration.lineThrough,
@@ -219,23 +190,70 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         ),
                     ],
                   ),
-
                   const SizedBox(height: 8),
                   Text(
                     widget.product.stock > 0
-                        ? "Còn hàng: ${widget.product.stock} sản phẩm"
+                        ? "Còn hàng (${widget.product.stock} sản phẩm)"
                         : "Hết hàng",
                     style: TextStyle(
                       color: widget.product.stock > 0 ? Colors.green : Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // --- CATEGORY & BRAND (THÊM MỚI TẠI ĐÂY) ---
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          widget.product.category,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+
+                      // Nếu có tên Brand thì hiển thị
+                      if (widget.product.brand != null && widget.product.brand!.isNotEmpty) ...[
+                        const SizedBox(width: 12),
+                        Text("|", style: TextStyle(color: Colors.grey[400])),
+                        const SizedBox(width: 12),
+
+                        // Bấm vào Brand để sang trang Shop
+                        InkWell(
+                          onTap: () {
+                            Get.to(() => ShopDetailScreen(brandName: widget.product.brand!));
+                          },
+                          child: Row(
+                            children: [
+                              Icon(Icons.store, size: 16, color: Theme.of(context).primaryColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.product.brand!,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).primaryColor,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
 
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 24),
 
-                  // Size Selector
                   if (_getAvailableSizes().isNotEmpty) ...[
                     const Text("Chọn kích thước", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 12),
@@ -258,8 +276,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ),
                     const SizedBox(height: 24),
                   ],
-
-                  // Description
                   const Text("Mô tả sản phẩm", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   Text(
@@ -270,16 +286,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       color: isDark ? Colors.grey[300] : Colors.grey[600],
                     ),
                   ),
-
                   const SizedBox(height: 30),
                   const Divider(thickness: 4),
                   const SizedBox(height: 20),
-
-                  // --- 3. REVIEW SECTION ---
                   const Text("Đánh giá & Nhận xét", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   const SizedBox(height: 16),
-
-                  // Form viết review
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -308,7 +319,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         TextField(
                           controller: _reviewController,
                           decoration: InputDecoration(
-                            hintText: "Sản phẩm thế nào?...",
+                            hintText: "Chất lượng sản phẩm thế nào?...",
                             filled: true,
                             fillColor: Theme.of(context).cardColor,
                             border: OutlineInputBorder(
@@ -335,10 +346,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Danh sách review
                   Obx(() {
                     if (reviewController.isLoading.value) {
                       return const Center(child: CircularProgressIndicator());
@@ -351,11 +359,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         ),
                       );
                     }
-
-                    // Sắp xếp Rating cao lên đầu
                     final sortedReviews = List<Review>.from(reviewController.reviews)
                       ..sort((a, b) => b.rating.compareTo(a.rating));
-
                     return ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -373,34 +378,28 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ],
         ),
       ),
-
-      // --- BOTTOM BAR ---
       bottomNavigationBar: _buildBottomBar(context, isDark),
     );
   }
 
-
   Future<void> _submitReview() async {
-    // if (_reviewController.text.trim().isEmpty) {
-    //   Get.snackbar("Thông báo", "Vui lòng nhập nội dung đánh giá", snackPosition: SnackPosition.TOP);
-    //   return;
-    // }
-
+    if (_reviewController.text.trim().isEmpty) {
+      Get.snackbar("Thông báo", "Vui lòng nhập nội dung đánh giá", snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     int? pid = int.tryParse(widget.product.id);
     if (pid == null) return;
-
     try {
       final success = await reviewController.addReview(
         productId: pid,
         rating: _userRating,
         comment: _reviewController.text.trim(),
       );
-
       if (success) {
         _reviewController.clear();
         setState(() => _userRating = 5);
         Get.snackbar("Thành công", "Cảm ơn bạn đã đánh giá!",
-          backgroundColor: Colors.green.withOpacity(0.1), colorText: Colors.green);
+            backgroundColor: Colors.green.withOpacity(0.1), colorText: Colors.green);
         FocusScope.of(context).unfocus();
       }
     } catch (e) {
@@ -413,20 +412,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       Get.snackbar("Hết hàng", "Sản phẩm này hiện đã hết hàng.", backgroundColor: Colors.red.withOpacity(0.1), colorText: Colors.red);
       return;
     }
-
     if (_getAvailableSizes().isNotEmpty && _selectedSize == null) {
-      Get.snackbar(
-        "Chưa chọn Size",
-        "Vui lòng chọn kích thước để tiếp tục",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      );
+      Get.snackbar("Chưa chọn Size", "Vui lòng chọn kích thước để tiếp tục", snackPosition: SnackPosition.TOP, backgroundColor: Colors.red.withOpacity(0.1), colorText: Colors.red, margin: const EdgeInsets.all(16), duration: const Duration(seconds: 2));
       return;
     }
-
     final success = await cartController.addToCart(
       product: widget.product,
       quantity: 1,
@@ -434,13 +423,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       selectedColor: null,
       showNotification: !isBuyNow,
     );
-
     if (success && isBuyNow) {
       Get.to(() => CheckoutScreen());
     }
   }
-
-  // --- WIDGET BUILDERS ---
 
   Widget _buildReviewItem(Review review, bool isDark) {
     final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(review.createdAt);
@@ -452,12 +438,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           CircleAvatar(
             radius: 20,
             backgroundColor: Colors.grey[300],
-            backgroundImage: review.userAvatar.isNotEmpty
-                ? NetworkImage(review.userAvatar)
-                : null,
-            child: review.userAvatar.isEmpty
-                ? const Icon(Icons.person, size: 24, color: Colors.white)
-                : null,
+            backgroundImage: review.userAvatar.isNotEmpty ? NetworkImage(review.userAvatar) : null,
+            child: review.userAvatar.isEmpty ? const Icon(Icons.person, size: 24, color: Colors.white) : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -467,29 +449,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(review.userName.isNotEmpty ? review.userName : "Người dùng",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(review.userName.isNotEmpty ? review.userName : "Người dùng", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     Text(dateStr, style: const TextStyle(color: Colors.grey, fontSize: 11)),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: List.generate(5, (index) => Icon(
-                    index < review.rating ? Icons.star : Icons.star_border,
-                    size: 14, color: Colors.amber,
-                  )),
-                ),
+                Row(children: List.generate(5, (index) => Icon(index < review.rating ? Icons.star : Icons.star_border, size: 14, color: Colors.amber))),
                 const SizedBox(height: 8),
-
-                // --- FIX: BỎ ĐIỀU KIỆN ẨN COMMENT ---
-                // Luôn hiển thị Text widget, nếu null thì hiện chuỗi rỗng để không bị vỡ layout
-                Text(
-                  review.comment ?? "",
-                  style: TextStyle(
-                    color: isDark ? Colors.grey[300] : Colors.grey[800],
-                    height: 1.4
-                  )
-                ),
+                if (review.comment != null && review.comment!.isNotEmpty) Text(review.comment!, style: TextStyle(color: isDark ? Colors.grey[300] : Colors.grey[800], height: 1.4)),
               ],
             ),
           ),
@@ -505,13 +472,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[900] : Colors.grey[100],
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-        image: widget.product.imageUrl.isNotEmpty
-            ? DecorationImage(image: NetworkImage(widget.product.imageUrl), fit: BoxFit.cover)
-            : null,
+        image: widget.product.imageUrl.isNotEmpty ? DecorationImage(image: NetworkImage(widget.product.imageUrl), fit: BoxFit.cover) : null,
       ),
-      child: widget.product.imageUrl.isEmpty
-          ? const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey))
-          : null,
+      child: widget.product.imageUrl.isEmpty ? const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey)) : null,
     );
   }
 
@@ -525,11 +488,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           onPressed: () async {
             await controller.toggleWishlist(widget.product);
           },
-          icon: Icon(
-            isWishlist ? Icons.favorite : Icons.favorite_border,
-            color: isWishlist ? Colors.red : Colors.grey,
-            size: 28,
-          ),
+          icon: Icon(isWishlist ? Icons.favorite : Icons.favorite_border, color: isWishlist ? Colors.red : Colors.grey, size: 28),
         );
       },
     );
@@ -540,19 +499,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5)),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
       ),
       child: SafeArea(
         child: Row(
           children: [
             Expanded(
               child: Obx(() => OutlinedButton(
-                // Nút luôn bấm được để check logic bên trong
-                onPressed: cartController.isLoading.value
-                    ? null
-                    : () => _handleAddToCart(isBuyNow: false),
+                onPressed: () => _handleAddToCart(isBuyNow: false),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: BorderSide(color: isDark ? Colors.white60 : Colors.grey[300]!),
@@ -564,7 +518,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               )),
             ),
             const SizedBox(width: 16),
-
             Expanded(
               child: ElevatedButton(
                 onPressed: () => _handleAddToCart(isBuyNow: true),
@@ -587,11 +540,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Future<void> _shareProduct(BuildContext context) async {
     final box = context.findRenderObject() as RenderBox?;
     try {
-      await Share.share(
-        "${widget.product.name}\n${widget.product.description}\nCheck it out!",
-        subject: widget.product.name,
-        sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
-      );
+      await Share.share("${widget.product.name}\n${widget.product.description}\nCheck it out!", subject: widget.product.name, sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size);
     } catch (e) { debugPrint("Error sharing: $e"); }
   }
 }

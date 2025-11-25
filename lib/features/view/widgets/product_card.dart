@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
+import 'package:ecomerceapp/controller/review_controller.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
+// Import ReviewController để lấy dữ liệu đánh giá
 
 // --- CONSTANTS ---
 const double kProductCardMaxWidth = 300;
@@ -38,6 +40,9 @@ class ProductCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTablet = screenWidth >= kTabletBreakpoint;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
+
+    // Inject ReviewController
+    final reviewController = Get.put(ReviewController());
 
     // Padding và Spacing
     final contentPadding = screenWidth < 350 ? 6.0 : kMobilePadding;
@@ -172,12 +177,11 @@ class ProductCard extends StatelessWidget {
 
                 SizedBox(height: verticalSpacing / 2),
 
-                // Danh mục
                 Text(
                   product.category,
                   style: _getResponsiveFont(
                     context,
-                    AppTextStyles.bodySmall, // Dùng bodySmall cho danh mục gọn hơn
+                    AppTextStyles.bodySmall,
                     isTablet: isTablet,
                     color: Colors.grey,
                   ),
@@ -185,14 +189,48 @@ class ProductCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
 
+                SizedBox(height: verticalSpacing / 2),
+
+                FutureBuilder<Map<String, dynamic>>(
+                  future: reviewController.getProductRatingStat(product.id),
+                  builder: (context, snapshot) {
+                    double rating = product.rating;
+                    int count = product.reviewCount;
+                    if (snapshot.hasData) {
+                      rating = (snapshot.data!['rating'] as num).toDouble();
+                      count = (snapshot.data!['count'] as num).toInt();
+                    }
+
+                    final ratingString = rating.toStringAsFixed(1).replaceAll('.', ',');
+
+                    return Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            "$ratingString, ($count đánh giá)",
+                            style: _getResponsiveFont(
+                              context,
+                              AppTextStyles.bodySmall,
+                              isTablet: isTablet,
+                              color: Colors.grey[600],
+                              weight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+
                 SizedBox(height: verticalSpacing),
 
-                // --- GIÁ (SỬ DỤNG COLUMN THAY VÌ ROW ĐỂ TRÁNH TRÀN) ---
-                // Với tiền VND dài, xếp dọc an toàn hơn xếp ngang
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Giá hiện tại (To, Đậm)
                     Text(
                       "${priceFormatter.format(product.price)} VND",
                       style: _getResponsiveFont(
@@ -206,7 +244,6 @@ class ProductCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    // Giá cũ (Nhỏ, Gạch ngang) - Chỉ hiện nếu có
                     if (product.oldPrice != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),

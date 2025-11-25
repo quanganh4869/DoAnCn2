@@ -21,7 +21,6 @@ class Products {
   final Map<String, dynamic> specification;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  // Bạn có thể thêm sellerId nếu cần quản lý logic hiển thị theo người bán
   final String? sellerId;
 
   Products({
@@ -53,11 +52,13 @@ class Products {
   factory Products.fromSupabaseJson(Map<String, dynamic> data, String id) {
     String? extractedBrand;
 
-    // Logic lấy Brand từ bảng sellers (quan hệ Joined)
+    // Logic lấy Brand từ bảng sellers/users (quan hệ Joined)
     // Supabase trả về dạng: { ..., "sellers": { "brand_name": "Adidas" } }
+    // Hoặc nếu bạn join với bảng users: { ..., "users": { "shop_name": "My Shop" } }
     if (data['sellers'] != null) {
-      // Ưu tiên lấy brand_name (theo cấu trúc mới), fallback về shop_name nếu chưa đổi tên cột
       extractedBrand = data['sellers']['brand_name'] ?? data['sellers']['shop_name'];
+    } else if (data['users'] != null) {
+      extractedBrand = data['users']['shop_name'] ?? data['users']['full_name'];
     }
 
     return Products(
@@ -68,11 +69,9 @@ class Products {
       oldPrice: (data['old_price'] as num?)?.toDouble(),
       currency: data['currency'] ?? "VND",
       images: List<String>.from(data['images'] ?? []),
-      // Lấy ảnh đầu tiên làm primary nếu primary_image null
       primaryImage: data['primary_image'] ?? (data['images'] != null && (data['images'] as List).isNotEmpty ? data['images'][0] : ""),
       isFavourite: data['is_favourite'] ?? false,
       description: data['description'] ?? '',
-      // Ưu tiên lấy từ bảng seller, nếu không có thì lấy cột brand cũ (nếu còn), hoặc để mặc định
       brand: extractedBrand ?? data['brand'] ?? "Unknown Brand",
       sku: data['sku'],
       stock: data['stock'] ?? 0,
@@ -89,9 +88,7 @@ class Products {
     );
   }
 
-  // Dùng để tạo object mẫu khi cần update UI ngay lập tức hoặc test
   factory Products.fromJson(Map<String, dynamic> json) {
-     // Nếu json có id thì dùng, không thì dùng chuỗi rỗng hoặc logic khác
      return Products.fromSupabaseJson(json, json['id']?.toString() ?? '');
   }
 
@@ -118,6 +115,7 @@ class Products {
     };
   }
 
+  // Getters tiện ích
   String get imageUrl => primaryImage.isNotEmpty ? primaryImage : (images.isNotEmpty ? images[0] : '');
 
   bool get hasDiscount => oldPrice != null && oldPrice! > price;

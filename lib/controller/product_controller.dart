@@ -244,4 +244,5 @@ class ProductController extends GetxController {
     }
     return _filteredProducts;
   }
+
 }
