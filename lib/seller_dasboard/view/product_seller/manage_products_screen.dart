@@ -1,21 +1,45 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:ecomerceapp/models/review.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
-import 'package:ecomerceapp/features/view/widgets/product_review.dart';
+import 'package:ecomerceapp/controller/review_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/view/product_seller/add_product_screen.dart';
 
-
 class ManageProductsScreen extends StatelessWidget {
   const ManageProductsScreen({super.key});
+
+  // Hàm phụ trợ lấy rating thực tế từ DB
+  Future<Map<String, dynamic>> _fetchProductRating(String productId) async {
+    final supabase = Supabase.instance.client;
+    try {
+      // Lấy tất cả review của sản phẩm này
+      final response = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('product_id', productId);
+
+      final reviews = response as List;
+      if (reviews.isEmpty) return {'rating': 0.0, 'count': 0};
+
+      final total = reviews.fold(0, (sum, item) => sum + (item['rating'] as int));
+      final avg = total / reviews.length;
+
+      return {'rating': avg, 'count': reviews.length};
+    } catch (e) {
+      return {'rating': 0.0, 'count': 0};
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<SellerController>();
     final authController = Get.find<AuthController>();
+    final reviewController = Get.put(ReviewController());
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormat = NumberFormat("#,###", "vi_VN");
@@ -85,7 +109,6 @@ class ManageProductsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
-
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -96,6 +119,7 @@ class ManageProductsScreen extends StatelessWidget {
                     context,
                     product,
                     controller,
+                    reviewController,
                     currencyFormat,
                   );
                 },
@@ -111,11 +135,9 @@ class ManageProductsScreen extends StatelessWidget {
     BuildContext context,
     Products product,
     SellerController controller,
+    ReviewController reviewController,
     NumberFormat format,
   ) {
-    // Format rating: 3.6 -> "3,6"
-    String ratingString = product.rating.toStringAsFixed(1).replaceAll('.', ',');
-
     return GestureDetector(
       onTap: () {
         Get.to(() => AddProductScreen(productToEdit: product));
@@ -172,7 +194,7 @@ class ManageProductsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
 
-                      // Hàng hiển thị: Giá | Tồn kho
+                      // Giá & Tồn kho
                       Row(
                         children: [
                           Text(
@@ -192,21 +214,37 @@ class ManageProductsScreen extends StatelessWidget {
 
                       const SizedBox(height: 6),
 
-                      // --- PHẦN MỚI: HIỂN THỊ RATING & COMMENT COUNT ---
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            ratingString, // "4,5"
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            "(${product.reviewCount} đánh giá)",
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                          ),
-                        ],
+                      // --- PHẦN MỚI: HIỂN THỊ RATING THỰC TẾ (FutureBuilder) ---
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: _fetchProductRating(product.id),
+                        builder: (context, snapshot) {
+                          // Mặc định dùng dữ liệu từ model nếu chưa load xong
+                          double rating = product.rating;
+                          int count = product.reviewCount;
+
+                          if (snapshot.hasData) {
+                            rating = snapshot.data!['rating'];
+                            count = snapshot.data!['count'];
+                          }
+
+                          String ratingString = rating.toStringAsFixed(1).replaceAll('.', ',');
+
+                          return Row(
+                            children: [
+                              const Icon(Icons.star, color: Colors.amber, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                ratingString, // "3,6"
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "($count đánh giá)",
+                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -220,7 +258,7 @@ class ManageProductsScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Nút Edit
+                // Nút Sửa
                 TextButton.icon(
                   onPressed: () {
                     Get.to(() => AddProductScreen(productToEdit: product));
@@ -229,10 +267,10 @@ class ManageProductsScreen extends StatelessWidget {
                   label: const Text("Sửa", style: TextStyle(color: Colors.blue)),
                 ),
 
-                // Nút Xem Đánh Giá (Mới)
+                // Nút Xem Đánh Giá
                 TextButton.icon(
                   onPressed: () {
-                    _showReviewsBottomSheet(context, product);
+                    _showReviewsBottomSheet(context, product, reviewController);
                   },
                   icon: const Icon(Icons.comment, color: Colors.orange, size: 20),
                   label: const Text("Xem Đánh giá", style: TextStyle(color: Colors.orange)),
@@ -253,37 +291,102 @@ class ManageProductsScreen extends StatelessWidget {
   }
 
   // Hàm hiện BottomSheet chứa danh sách đánh giá
-  void _showReviewsBottomSheet(BuildContext context, Products product) {
+  void _showReviewsBottomSheet(BuildContext context, Products product, ReviewController reviewController) {
+    int? pid = int.tryParse(product.id);
+    if (pid != null) {
+      reviewController.fetchReviews(pid);
+    }
+
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Để bottom sheet có thể full chiều cao
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thanh nắm kéo
-            Container(
-              width: 40, height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+              ),
             ),
-            Text("Đánh giá cho: ${product.name}",
+            Text("Đánh giá: ${product.name}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 10),
 
             Expanded(
-              child: SingleChildScrollView(
-                child: ProductReview(
-                  productId: int.tryParse(product.id) ?? 0,
-                ),
-              ),
+              child: Obx(() {
+                if (reviewController.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (reviewController.reviews.isEmpty) {
+                  return const Center(child: Text("Chưa có đánh giá nào.", style: TextStyle(color: Colors.grey)));
+                }
+
+                final reviews = List<Review>.from(reviewController.reviews);
+
+                return ListView.separated(
+                  itemCount: reviews.length,
+                  separatorBuilder: (_, __) => const Divider(height: 24),
+                  itemBuilder: (context, index) {
+                    final review = reviews[index];
+                    final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(review.createdAt);
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.grey[200],
+                              backgroundImage: review.userAvatar.isNotEmpty
+                                  ? NetworkImage(review.userAvatar)
+                                  : null,
+                              child: review.userAvatar.isEmpty
+                                  ? const Icon(Icons.person, size: 16, color: Colors.grey)
+                                  : null,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    review.userName.isNotEmpty ? review.userName : "Khách hàng",
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                  Text(dateStr, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              children: List.generate(5, (starIndex) => Icon(
+                                starIndex < review.rating ? Icons.star : Icons.star_border,
+                                size: 14, color: Colors.amber,
+                              )),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (review.comment != null && review.comment!.isNotEmpty)
+                          Text(review.comment!, style: TextStyle(color: Colors.grey[800], height: 1.4))
+                        else
+                          Text("(Khách hàng không để lại bình luận)", style: TextStyle(color: Colors.grey[400], fontSize: 12, fontStyle: FontStyle.italic)),
+                      ],
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),
