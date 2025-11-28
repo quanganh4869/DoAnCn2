@@ -14,24 +14,18 @@ class AuthController extends GetxController {
 
   final RxBool _isFirstime = true.obs;
   final RxBool _isLoggedIn = false.obs;
-
-  // Biến lưu trữ UserProfile đầy đủ (bao gồm role và thông tin seller)
   final Rx<UserProfile?> _userProfile = Rx<UserProfile?>(null);
 
   bool get isFirstime => _isFirstime.value;
   bool get isLoggedIn => _isLoggedIn.value;
   User? get currentUser => _supabase.auth.currentUser;
 
-  // Getter để truy cập UserProfile từ các màn hình khác
   UserProfile? get userProfile => _userProfile.value;
-
   Rx<UserProfile?> get userProfileRx => _userProfile;
 
-  // User info cho UI
   var userName = "".obs;
   var userAvatar = "".obs;
 
-  // Default avatar
   static const String defaultAvatar =
       "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
@@ -41,16 +35,13 @@ class AuthController extends GetxController {
     _loadInitialStates();
     loadUserFromSession();
 
-    // Lắng nghe sự thay đổi trạng thái đăng nhập từ Supabase (Login/Logout/Token Refresh)
     _supabase.auth.onAuthStateChange.listen((data) {
       final session = data.session;
       if (session != null && session.user != null) {
-        // Nếu có session -> reload lại thông tin user để chắc chắn data mới nhất
         if (_userProfile.value == null || _userProfile.value!.id != session.user.id) {
            loadUserFromSession();
         }
       } else {
-        // Nếu không có session -> logout
         _clearUserState();
       }
     });
@@ -66,30 +57,38 @@ class AuthController extends GetxController {
     _storage.write('isFirstime', false);
   }
 
-  /// Load user info từ Supabase session (bao gồm cả thông tin Seller từ bảng users)
-  Future<void> loadUserFromSession() async {
+   Future<void> loadUserFromSession() async {
     final user = _supabase.auth.currentUser;
     if (user == null) {
       _clearUserState();
       return;
     }
 
-    _isLoggedIn.value = true;
-    _storage.write('isLoggedIn', true);
-    print("🆔 ID của tài khoản đang đăng nhập: ${user.id}");
-
     try {
-      // Gọi Service để lấy UserProfile (đã map sẵn các trường seller trong model)
       final profile = await _authServices.getUserProfileById(user.id);
 
       if (profile != null) {
-        _userProfile.value = profile;
+        if (profile.isActive == false) {
+          print("⛔ Tài khoản này đã bị khóa (Banned). Đang đăng xuất...");
+          await logout();
+          Get.snackbar(
+            "Tài khoản bị khóa",
+            "Vui lòng liên hệ quản trị viên để biết thêm chi tiết.",
+            backgroundColor: Colors.red.withOpacity(0.1),
+            colorText: Colors.red,
+            duration: const Duration(seconds: 5),
+          );
+          return;
+        }
 
-        // Cập nhật biến UI
+        _isLoggedIn.value = true;
+        _storage.write('isLoggedIn', true);
+
+        _userProfile.value = profile;
         userName.value = profile.fullName ?? "User";
         userAvatar.value = profile.userImage ?? defaultAvatar;
 
-        print("✅ Đã load UserProfile: ${profile.fullName} | SellerStatus: ${profile.sellerStatus}");
+        print("✅ Đã load UserProfile: ${profile.fullName} | Role: ${profile.role}");
       } else {
         userName.value = "User";
         userAvatar.value = defaultAvatar;
@@ -97,15 +96,12 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       print('[LoadUser] error -> $e');
-      // Giữ trạng thái đăng nhập nhưng reset info hiển thị nếu lỗi
       userName.value = "User";
       userAvatar.value = defaultAvatar;
       _userProfile.value = null;
     }
   }
 
-  /// Hàm mới: Cập nhật Local Profile (Dùng cho SellerController hoặc khi edit profile)
-  /// Giúp cập nhật UI ngay lập tức mà không cần gọi lại API
   Future<void> updateLocalProfile(UserProfile newProfile) async {
     _userProfile.value = newProfile;
     userName.value = newProfile.fullName ?? userName.value;
@@ -114,10 +110,9 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Upload avatar -> trả về public URL
   Future<String> uploadUserImage(File imageFile, String userId) async {
     try {
-      final ext = p.extension(imageFile.path); // .png .jpg
+      final ext = p.extension(imageFile.path);
       final filename = 'avatar$ext';
       final storagePath = '$userId/$filename';
 
@@ -136,7 +131,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Đăng ký tài khoản User mới (Signup)
+  // Đăng ký tài khoản User mới
   Future<bool> signUp({
     required String name,
     required String email,
@@ -146,7 +141,6 @@ class AuthController extends GetxController {
     File? avatarFile,
   }) async {
     try {
-      // 1. Đăng ký Auth Supabase
       final authResp = await _supabase.auth.signUp(
         email: email,
         password: password,
@@ -158,7 +152,6 @@ class AuthController extends GetxController {
         return false;
       }
 
-      // 2. Upload Avatar nếu có
       String avatarUrl = defaultAvatar;
       if (avatarFile != null) {
         try {
@@ -168,7 +161,6 @@ class AuthController extends GetxController {
         }
       }
 
-      // 3. Tạo UserProfile Model (Bao gồm cả các trường seller mặc định là 'none')
       final newProfile = UserProfile(
         id: user.id,
         fullName: name,
@@ -176,18 +168,16 @@ class AuthController extends GetxController {
         phone: phone,
         gender: gender,
         userImage: avatarUrl,
-        role: 'user', // Mặc định là user thường
+        role: 'user',
         createdAt: DateTime.now().toIso8601String(),
         isActive: true,
-        sellerStatus: 'none', // Chưa đăng ký shop
+        sellerStatus: 'none',
         storeName: null,
         storeDescription: null,
       );
 
-      // 4. Lưu vào bảng 'users' qua Service
       await _authServices.createUserProfile(newProfile);
 
-      // 5. Cập nhật state local
       _isLoggedIn.value = true;
       _storage.write('isLoggedIn', true);
 
@@ -203,7 +193,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Login
+  // Login
   Future<bool> login(String email, String password) async {
     try {
       final response = await _supabase.auth.signInWithPassword(
@@ -233,7 +223,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Reset password (Gửi mail)
+  // Reset password (Gửi mail)
   Future<void> resetPassword(String email) async {
     try {
       await _supabase.auth.resetPasswordForEmail(email);
@@ -280,7 +270,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Update Password (Sau khi OTP thành công)
+  // Update Password (Sau khi OTP thành công)
   Future<bool> updatePassword(String newPassword) async {
     try {
       final response = await _supabase.auth.updateUser(
@@ -315,7 +305,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Logout
+  // Logout
   Future<void> logout() async {
     try {
       await _supabase.auth.signOut();
@@ -326,7 +316,7 @@ class AuthController extends GetxController {
     }
   }
 
-  /// Clear toàn bộ state khi logout
+  // Clear toàn bộ state khi logout
   void _clearUserState() {
     _isLoggedIn.value = false;
     userName.value = "";
@@ -335,14 +325,14 @@ class AuthController extends GetxController {
     _storage.write('isLoggedIn', false);
   }
 
-  /// Kiểm tra Admin
+  // Kiểm tra Admin
   bool get isAdmin {
     final profile = userProfile;
     if (profile == null || profile.role == null) return false;
     return profile.role!.trim().toLowerCase() == 'admin';
   }
 
-  /// Update thông tin cá nhân (User Profile)
+  // Update thông tin cá nhân (User Profile)
   Future<bool> updateProfile({
     required String fullName,
     required String phone,
@@ -379,6 +369,34 @@ class AuthController extends GetxController {
     } catch (e) {
       Get.snackbar("Update Error", "Không thể cập nhật hồ sơ: $e");
       return false;
+    }
+  }
+
+  // Ban/Unban User Login
+  Future<void> adminToggleUserBan(String targetUserId, bool ban) async {
+    try {
+      await _supabase.from('users').update({'is_active': !ban}).eq('id', targetUserId);
+
+      String msg = ban ? "Đã khóa tài khoản user" : "Đã mở khóa tài khoản user";
+      Get.snackbar("Admin Action", msg, backgroundColor: Colors.blue.withOpacity(0.1));
+    } catch (e) {
+      Get.snackbar("Error", "Lỗi khi ban user: $e");
+    }
+  }
+
+  // Ban/Unban Seller Mode
+  Future<void> adminToggleSellerBan(String targetUserId, bool ban) async {
+    try {
+      String newStatus = ban ? 'suspended' : 'active';
+
+      await _supabase.from('users').update({
+        'seller_status': newStatus
+      }).eq('id', targetUserId);
+
+      String msg = ban ? "Đã đình chỉ quyền bán hàng (Suspended)" : "Đã khôi phục quyền bán hàng (Active)";
+      Get.snackbar("Admin Action", msg, backgroundColor: Colors.orange.withOpacity(0.1), colorText: Colors.orange);
+    } catch (e) {
+      Get.snackbar("Error", "Lỗi khi cấm seller: $e");
     }
   }
 }

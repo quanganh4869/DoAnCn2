@@ -1,5 +1,8 @@
 import 'package:get/get.dart';
 import 'package:ecomerceapp/models/product.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/supabase/recommendation_service.dart';
 import 'package:ecomerceapp/supabase/product_supabase_services.dart';
 
 class ProductController extends GetxController {
@@ -8,6 +11,9 @@ class ProductController extends GetxController {
   final RxList<Products> _featuredProducts = <Products>[].obs;
   final RxList<Products> _saleProducts = <Products>[].obs;
   final RxList<String> _categories = <String>[].obs;
+
+  final RxList<Products> _recommendedProducts = <Products>[].obs;
+  final RxBool isPersonalized = false.obs;
 
   final RxBool _isLoading = false.obs;
   final RxBool _hasError = false.obs;
@@ -22,6 +28,8 @@ class ProductController extends GetxController {
   List<Products> get filteredProducts => _filteredProducts;
   List<Products> get featuredProducts => _featuredProducts;
   List<Products> get saleProducts => _saleProducts;
+  List<Products> get recommendedProducts => _recommendedProducts;
+
   List<String> get categories => _categories;
   bool get isLoading => _isLoading.value;
   bool get hasError => _hasError.value;
@@ -36,6 +44,15 @@ class ProductController extends GetxController {
     super.onInit();
     _selectedCategory.value = "All";
     loadProducts();
+
+    // Lắng nghe khi user đăng nhập để load gợi ý ngay
+    if (Get.isRegistered<AuthController>()) {
+       ever(Get.find<AuthController>().userProfileRx, (profile) {
+        if (profile != null) {
+          fetchPersonalizedRecommendations();
+        }
+      });
+    }
   }
 
   // Load toàn bộ sản phẩm
@@ -52,6 +69,10 @@ class ProductController extends GetxController {
       await _loadFeaturedProducts();
       await _loadSaleProducts();
       await _loadCategories();
+
+      // Thử load gợi ý sau khi load xong sản phẩm chính
+      await fetchPersonalizedRecommendations();
+
     } catch (e) {
       _hasError.value = true;
       _errorMessage.value = "Failed to load products. Please try again.";
@@ -237,12 +258,67 @@ class ProductController extends GetxController {
     _filteredProducts.value = _allProducts;
   }
 
-  // Lấy sản phẩm để hiển thị
+  // Lấy sản phẩm để hiển thị (ĐÃ CẬP NHẬT ĐỂ ƯU TIÊN GỢI Ý NẾU CÓ)
   List<Products> getDisplayProducts() {
+    // Nếu có gợi ý cá nhân hóa và không đang lọc/search -> Hiện gợi ý
+    if (isPersonalized.value &&
+        (_selectedCategory.value == "All" || _selectedCategory.value.isEmpty) &&
+        _searchQuery.value.isEmpty) {
+      return _recommendedProducts;
+    }
+
+    // Logic cũ
     if (_selectedCategory.value == "All" || _selectedCategory.value.isEmpty) {
-      return _allProducts;
+      return _allProducts; // Hoặc _filteredProducts đều giống nhau khi không lọc
     }
     return _filteredProducts;
   }
 
+  // --- MỚI: HÀM LẤY GỢI Ý CÁ NHÂN HÓA ---
+   Future<void> fetchPersonalizedRecommendations() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+
+    // Nếu chưa đăng nhập -> Không có gợi ý cá nhân -> Hiện mặc định
+    if (userId == null) {
+      isPersonalized.value = false;
+      return;
+    }
+
+    try {
+      // 1. Tìm sản phẩm mua gần nhất của CHÍNH USER ĐÓ
+      // Sử dụng !inner để JOIN bắt buộc với bảng orders và lọc theo user_id
+      final response = await Supabase.instance.client
+          .from('order_items')
+          .select('product_id, orders!inner(user_id)')
+          .eq('orders.user_id', userId) // <-- QUAN TRỌNG: Chỉ lấy đơn của user này
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if (response.isNotEmpty) {
+        final lastProductId = response[0]['product_id'].toString();
+        print("🔍 User $userId vừa mua sp $lastProductId -> Đang tìm sp tương tự...");
+
+        // 2. Gọi AI Service
+        final similarProducts = await RecommendationService.getSimilarProducts(lastProductId);
+
+        if (similarProducts.isNotEmpty) {
+          _recommendedProducts.value = similarProducts;
+          isPersonalized.value = true; // Bật cờ để UI chuyển sang hiển thị list này
+        } else {
+          isPersonalized.value = false;
+        }
+      } else {
+        print("ℹ️ User chưa mua gì -> Hiện list mặc định");
+        isPersonalized.value = false;
+      }
+    } catch (e) {
+      print("❌ Lỗi gợi ý: $e");
+      isPersonalized.value = false;
+    }
+  }
+
+  // Hàm làm mới gợi ý (Gọi khi đặt hàng xong)
+  void refreshRecommendations() {
+    fetchPersonalizedRecommendations();
+  }
 }

@@ -5,9 +5,7 @@ import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/review_controller.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
-// Import ReviewController để lấy dữ liệu đánh giá
 
-// --- CONSTANTS ---
 const double kProductCardMaxWidth = 300;
 const double kMobilePadding = 8.0;
 const double kTabletBreakpoint = 600.0;
@@ -16,7 +14,6 @@ class ProductCard extends StatelessWidget {
   final Products product;
   const ProductCard({super.key, required this.product});
 
-  /// Hàm hỗ trợ scale font chữ
   TextStyle _getResponsiveFont(
     BuildContext context,
     TextStyle baseStyle, {
@@ -41,10 +38,8 @@ class ProductCard extends StatelessWidget {
     final isTablet = screenWidth >= kTabletBreakpoint;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
 
-    // Inject ReviewController
     final reviewController = Get.put(ReviewController());
 
-    // Padding và Spacing
     final contentPadding = screenWidth < 350 ? 6.0 : kMobilePadding;
     final verticalSpacing = isTablet ? 12.0 : 4.0;
 
@@ -69,9 +64,8 @@ class ProductCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Quan trọng: Chỉ chiếm chiều cao cần thiết
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // --- 1. ẢNH & ICON & TAG ---
           Stack(
             children: [
               AspectRatio(
@@ -97,7 +91,6 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Nút tim
               Positioned(
                 right: contentPadding,
                 top: contentPadding,
@@ -128,7 +121,6 @@ class ProductCard extends StatelessWidget {
                   },
                 ),
               ),
-              // Tag giảm giá
               if (product.oldPrice != null)
                 Positioned(
                   left: contentPadding,
@@ -139,7 +131,7 @@ class ProductCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red, // Màu đỏ nổi bật cho Sale
+                      color: Colors.red,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -155,13 +147,12 @@ class ProductCard extends StatelessWidget {
             ],
           ),
 
-          // --- 2. THÔNG TIN SẢN PHẨM ---
+          //  THÔNG TIN SẢN PHẨM
           Padding(
             padding: EdgeInsets.all(contentPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tên sản phẩm
                 Text(
                   product.name,
                   style: _getResponsiveFont(

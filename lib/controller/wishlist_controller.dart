@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/models/wishlist.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
+import 'package:ecomerceapp/supabase/user_behavior_service.dart';
 import 'package:ecomerceapp/supabase/wishlist_supabase_service.dart';
 import 'package:ecomerceapp/controller/cart_controller.dart'; // IMPORT CartController
 
@@ -170,18 +171,22 @@ class WishlistController extends GetxController {
   }
 
   // Toggle (Thêm/Xóa)
-  Future<void> toggleWishlist(Products product) async {
+   Future<void> toggleWishlist(Products product) async {
     final userId = _userId;
     if (userId == null) {
-      Get.snackbar("Login Required", "Please log in to manage wishlist");
+      Get.snackbar("Yêu cầu đăng nhập", "Vui lòng đăng nhập để lưu sản phẩm yêu thích",
+          snackPosition: SnackPosition.TOP);
       return;
     }
 
     final exists = isProductInWishList(product.id);
+
     if (exists) {
       await removeFromWishlist(product.id);
+      UserBehaviorService.trackAction(product.id, 'unwishlist');
     } else {
       await addToWishlist(product);
+      UserBehaviorService.trackAction(product.id, 'wishlist');
     }
     update(["wishlist_${product.id}"]);
   }
@@ -221,7 +226,7 @@ class WishlistController extends GetxController {
         product: product,
         quantity: 1,
         // QUAN TRỌNG: Tắt thông báo mặc định của CartController để tự xử lý vị trí TOP tại đây
-        showNotification: false, 
+        showNotification: false,
       );
 
       if (success) {
@@ -232,7 +237,7 @@ class WishlistController extends GetxController {
           backgroundColor: Colors.green.withOpacity(0.1),
           colorText: Colors.green,
         );
-        
+
         // (Tùy chọn) Xóa khỏi wishlist nếu cần
         // await removeFromWishlist(product.id);
       } else {
@@ -263,7 +268,7 @@ class WishlistController extends GetxController {
   Future<void> addAllToCart() async {
     if (wishlist.isEmpty) {
       Get.snackbar(
-        "Notice", 
+        "Notice",
         "Your wishlist is empty",
         snackPosition: SnackPosition.TOP, // Hiển thị ở trên
       );
@@ -306,7 +311,7 @@ class WishlistController extends GetxController {
         // await clearWishlist();
       } else {
         Get.snackbar(
-          "Error", 
+          "Error",
           "Failed to add items (Out of stock or Error)",
           snackPosition: SnackPosition.TOP, // Hiển thị ở trên
           backgroundColor: Colors.red.withOpacity(0.1),
@@ -316,7 +321,7 @@ class WishlistController extends GetxController {
     } catch (e) {
       print("Error addAllToCart: $e");
       Get.snackbar(
-        "Error", 
+        "Error",
         "Something went wrong",
         snackPosition: SnackPosition.TOP, // Hiển thị ở trên
         backgroundColor: Colors.red.withOpacity(0.1),

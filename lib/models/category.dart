@@ -31,10 +31,10 @@ class Category {
     name: data["name"] ?? "",
     displayName: data["display_name"] ?? data["name"] ?? "",
     description: data["description"] ?? "",
-    iconUrl: data["icon_url"] ?? data["iconUrl"], 
-    imageUrl: data["image_url"] ?? data["imageUrl"], 
+    iconUrl: data["icon_url"] ?? data["iconUrl"],
+    imageUrl: data["image_url"] ?? data["imageUrl"],
     isActive: data["is_active"] ?? true,
-    sortOrder: data["sort_order"] ?? data["sortOrder"] ?? 0, 
+    sortOrder: data["sort_order"] ?? data["sortOrder"] ?? 0,
     subcategories: List<String>.from(data["subcategories"] ?? []),
     metadata: Map<String, dynamic>.from(data["metadata"] ?? {}),
     createdAt: data['created_at'] != null
@@ -60,6 +60,35 @@ class Category {
       'created_at':createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
+  }
+Category copyWith({
+    String? id,
+    String? name,
+    String? displayName,
+    String? description,
+    String? iconUrl,
+    String? imageUrl,
+    bool? isActive,
+    int? sortOrder,
+    List<String>? subcategories,
+    Map<String, dynamic>? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      displayName: displayName ?? this.displayName,
+      description: description ?? this.description,
+      iconUrl: iconUrl ?? this.iconUrl,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isActive: isActive ?? this.isActive,
+      sortOrder: sortOrder ?? this.sortOrder,
+      subcategories: subcategories ?? this.subcategories,
+      metadata: metadata ?? this.metadata,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 
   @override

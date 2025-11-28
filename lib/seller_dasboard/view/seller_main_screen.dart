@@ -139,7 +139,7 @@ class SellerMainScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Xin chào shop ${authController.userProfile?.storeName}" ??
+                                      "Xin chào ${authController.userProfile?.storeName}" ??
                                           "My Shop",
                                       style: TextStyle(
                                         fontSize: 18,

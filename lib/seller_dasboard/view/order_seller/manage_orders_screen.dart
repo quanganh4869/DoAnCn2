@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/myorders/model/order.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 
@@ -8,12 +9,13 @@ class ManageOrdersScreen extends StatelessWidget {
   ManageOrdersScreen({super.key});
 
   final SellerController controller = Get.find<SellerController>();
+    final authController = Get.find<AuthController>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Manage Shop Orders"),
+        title: Text("Quản lí các đơn hàng của : ${authController.userProfile?.storeName}"),
         centerTitle: true,
         actions: [
           IconButton(
@@ -55,9 +57,8 @@ class ManageOrdersScreen extends StatelessWidget {
  Widget _buildOrderCard(BuildContext context, Order order) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(order.orderDate);
-  final priceFormatter = NumberFormat("#,###", "vi_VN");
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
 
-  // Tổng thu nhập từ đơn này
   final double shopTotal = order.items.fold(
     0,
     (sum, item) => sum + (item.price * item.quantity),
@@ -89,14 +90,14 @@ class ManageOrdersScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "Placed on: $dateStr",
+            "Ngày đặt: $dateStr",
             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
         ],
       ),
 
       subtitle: Text(
-        "Customer ID: ${order.userId.substring(0, 8)}...",
+        "ID người dùng: ${order.userId.substring(0, 8)}...",
         style: TextStyle(fontSize: 13, color: Colors.grey[700]),
       ),
 
@@ -121,7 +122,7 @@ class ManageOrdersScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "${order.shippingAddress!.fullAddress}, ${order.shippingAddress!.city}",
+                        "Địa chỉ: ${order.shippingAddress!.fullAddress}, ${order.shippingAddress!.city}",
                         style: const TextStyle(fontSize: 13, height: 1.3),
                       ),
                     ),
@@ -161,10 +162,7 @@ class ManageOrdersScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 12),
-
-                      // Info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,10 +218,7 @@ class ManageOrdersScreen extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
-
-              // Action Buttons
               _buildActionButtons(context, order),
             ],
           ),
@@ -232,9 +227,6 @@ class ManageOrdersScreen extends StatelessWidget {
     ),
   );
 }
-
-
-  // Status Badge
   Widget _buildStatusBadge(OrderStatus status) {
     Color color;
     String text;
@@ -283,17 +275,15 @@ class ManageOrdersScreen extends StatelessWidget {
     );
   }
 
-  // Action Buttons Logic
   Widget _buildActionButtons(BuildContext context, Order order) {
     if (order.status == OrderStatus.cancelled ||
         order.status == OrderStatus.completed) {
-      return const SizedBox.shrink(); // No actions for finished orders
+      return const SizedBox.shrink();
     }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        // Cancel Button (Visible unless Completed)
         OutlinedButton(
           onPressed: () => _confirmAction(
             context,
@@ -310,7 +300,6 @@ class ManageOrdersScreen extends StatelessWidget {
 
         const SizedBox(width: 12),
 
-        // Main Status Action
         if (order.status == OrderStatus.pending)
           ElevatedButton(
             style: ElevatedButton.styleFrom(

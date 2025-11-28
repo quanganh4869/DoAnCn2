@@ -1,68 +1,186 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/admin_dashboard/controller/admin_controller.dart';
-// import 'package:fl_chart/fl_chart.dart'; // Cần thư viện biểu đồ
 
-class Adminproductmanagementscreen extends StatelessWidget {
-  Adminproductmanagementscreen({super.key});
-  final AdminController controller = Get.find();
+class AdminProductManagementScreen extends StatelessWidget {
+  AdminProductManagementScreen({super.key});
+
+  final AdminController controller = Get.find<AdminController>();
 
   @override
   Widget build(BuildContext context) {
-    // Tải dữ liệu biểu đồ
-    controller.fetchDailySalesData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchAllAdminProducts();
+    });
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Column(
         children: [
-          // BIỂU ĐỒ MUA HÀNG TRONG NGÀY
-          const Text("Daily User Purchases (Last 7 Days)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Container(
-            height: 300,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-            child: Obx(() => Center(
-              child: controller.salesData.isEmpty && !controller.isLoading.value
-                  ? const Text("No sales data available.")
-                  : const Text("Placeholder for Line Chart (Need fl_chart or similar)"),
-            )),
-          ),
-
-          const SizedBox(height: 30),
-          const Divider(),
-
-          // LỌC SẢN PHẨM BÁN TRONG NGÀY
-          const Text("Top Selling Products (Today)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-
-          // Nút Chọn Ngày (MOCK)
-          ElevatedButton.icon(
-            onPressed: () {
-              // Logic chọn ngày và gọi controller.fetchTopSellingProducts()
-            },
-            icon: const Icon(Icons.calendar_today),
-            label: Text(DateFormat('MMM dd, yyyy').format(DateTime.now())),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Danh sách Sản phẩm bán chạy (Placeholder)
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 5,
-            itemBuilder: (context, index) => const ListTile(
-              title: Text("Product Name [MOCK]"),
-              subtitle: Text("Quantity Sold: 50"),
-              trailing: Text("\$1,200"),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (value) {
+                // Debounce search
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (value == controller.currentSearchQuery.value) return;
+                  controller.fetchAllAdminProducts(query: value);
+                });
+              },
+              decoration: InputDecoration(
+                labelText: "Tìm kiếm",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
             ),
+          ),
+
+          // 2. List Products
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value &&
+                  controller.adminProductsList.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (controller.adminProductsList.isEmpty) {
+                return const Center(child: Text("No products found."));
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.only(bottom: 20),
+                itemCount: controller.adminProductsList.length,
+                separatorBuilder: (ctx, i) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final product = controller.adminProductsList[index];
+                  return _buildProductTile(context, product, priceFormatter);
+                },
+              );
+            }),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProductTile(
+    BuildContext context,
+    Products product,
+    NumberFormat priceFormatter,
+  ) {
+    // Logic hiển thị tên Shop
+    String shopName = "Unknown Shop";
+    if (product.brand != null && product.brand!.isNotEmpty) {
+      shopName = product.brand!;
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // Ảnh sản phẩm
+      leading: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+          image: product.imageUrl.isNotEmpty
+              ? DecorationImage(
+                  image: NetworkImage(product.imageUrl),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: product.imageUrl.isEmpty
+            ? const Icon(Icons.image_not_supported, color: Colors.grey)
+            : null,
+      ),
+
+      // Thông tin
+      title: Text(
+        product.name,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          // Nếu bị admin ẩn (is_active = false) thì gạch ngang tên
+          decoration: product.isActive ? null : TextDecoration.lineThrough,
+          color: product.isActive ? Colors.black : Colors.grey,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Text(
+            "${priceFormatter.format(product.price)} VND",
+            style: const TextStyle(
+              color: Colors.green,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              const Icon(Icons.store, size: 14, color: Colors.blueGrey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  shopName,
+                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+
+      // Hành động
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // --- FIX LỖI TẠI ĐÂY ---
+          // Sử dụng đúng hàm toggleProductStatus để ẩn/hiện sản phẩm
+          Switch(
+            value: product.isActive, // Lấy trạng thái từ product
+            activeColor: Colors.green,
+            onChanged: (val) => controller.toggleProductStatus(product.id, val),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => _confirmDelete(context, product),
+          ),
+        ],
+      ),
+
+      onTap: () {
+        // Logic xem chi tiết (nếu cần)
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, Products product) {
+    Get.defaultDialog(
+      title: "Delete Product",
+      middleText:
+          "Are you sure you want to permanently delete '${product.name}'?\nThis action cannot be undone.",
+      textConfirm: "Delete",
+      textCancel: "Cancel",
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.red,
+      onConfirm: () {
+        Get.back();
+        controller.deleteAdminProduct(product.id);
+      },
     );
   }
 }

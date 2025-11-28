@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_themes.dart';
 import 'package:ecomerceapp/supabase/connect.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ecomerceapp/controller/chat_controller.dart';
 import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/utils/supabase_data_seeder.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
@@ -35,6 +36,7 @@ Future<void> main() async {
   Get.put(AddressController());
   Get.put(DashboardController());
   Get.put(ReviewController());
+  Get.put(ChatController());
 
 
   await SupabaseDataSeeder.seedAllData();

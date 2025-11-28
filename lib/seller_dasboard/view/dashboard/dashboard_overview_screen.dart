@@ -13,7 +13,7 @@ class DashboardOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+    final priceFormatter = NumberFormat("#,###", "vi_VN");
 
     return Scaffold(
       appBar: AppBar(
@@ -39,10 +39,9 @@ class DashboardOverviewScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. STAT CARDS
               Row(
                 children: [
-                  Expanded(child: _buildStatCard(context, "Doanh thu", currencyFormatter.format(controller.totalRevenue.value), Colors.blue, Icons.attach_money, isDark)),
+                  Expanded(child: _buildStatCard(context, "Doanh thu", priceFormatter.format(controller.totalRevenue.value), Colors.blue, Icons.attach_money, isDark)),
                   const SizedBox(width: 12),
                   Expanded(child: _buildStatCard(context, "Đơn hàng", "${controller.totalOrders.value}", Colors.orange, Icons.shopping_bag_outlined, isDark)),
                 ],
@@ -65,7 +64,6 @@ class DashboardOverviewScreen extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 2. BAR CHART (Doanh thu 7 ngày)
               Text("Doanh thu 7 ngày qua", style: AppTextStyles.h3),
               const SizedBox(height: 16),
               _buildChartContainer(
@@ -79,7 +77,7 @@ class DashboardOverviewScreen extends StatelessWidget {
                         tooltipBgColor: Colors.blueGrey,
                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
                           return BarTooltipItem(
-                            currencyFormatter.format(rod.toY),
+                            priceFormatter.format(rod.toY),
                             const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           );
                         },

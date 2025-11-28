@@ -11,12 +11,10 @@ class SellerRequestsCard extends StatelessWidget {
     final AdminController controller = Get.find<AdminController>();
 
     return Obx(() {
-      // 1. Trạng thái Loading
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      // 2. Trạng thái Trống
       if (controller.pendingRequests.isEmpty) {
         return Center(
           child: Column(
@@ -33,21 +31,18 @@ class SellerRequestsCard extends StatelessWidget {
         );
       }
 
-      // 3. Danh sách yêu cầu
       return ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: controller.pendingRequests.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          // request ở đây chính là UserProfile
           final request = controller.pendingRequests[index];
 
           return Card(
             elevation: 2,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias, // Để hiệu ứng gợn sóng không bị tràn
+            clipBehavior: Clip.antiAlias,
             child: InkWell(
-              // === SỰ KIỆN BẤM VÀO THẺ -> XEM CHI TIẾT ===
               onTap: () {
                 Get.to(() => UserDetailRequestScreen(request: request));
               },
@@ -56,7 +51,6 @@ class SellerRequestsCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header: Avatar & Tên Shop
                     Row(
                       children: [
                         CircleAvatar(
@@ -97,14 +91,12 @@ class SellerRequestsCard extends StatelessWidget {
                     ),
                     const Divider(height: 24),
 
-                    // Thông tin tóm tắt
                     _infoRow(Icons.email, "Email KD:", request.businessEmail ?? request.email ?? "N/A"),
                     const SizedBox(height: 8),
                     _infoRow(Icons.phone, "SĐT Shop:", request.shopPhone ?? request.phone ?? "N/A"),
                     const SizedBox(height: 8),
                     _infoRow(Icons.location_on, "Địa chỉ:", request.shopAddress ?? "N/A"),
                     const SizedBox(height: 8),
-                    // Giới hạn mô tả 1 dòng
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -121,10 +113,7 @@ class SellerRequestsCard extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Nút hành động nhanh
                     Row(
                       children: [
                         Expanded(
@@ -132,9 +121,9 @@ class SellerRequestsCard extends StatelessWidget {
                             onPressed: () => _confirmAction(
                               context,
                               controller,
-                              request.id, // ID User
+                              request.id,
                               request.storeName ?? "Shop",
-                              false // Từ chối
+                              false
                             ),
                             icon: const Icon(Icons.close, color: Colors.red),
                             label: const Text("Từ chối", style: TextStyle(color: Colors.red)),
@@ -150,9 +139,9 @@ class SellerRequestsCard extends StatelessWidget {
                             onPressed: () => _confirmAction(
                               context,
                               controller,
-                              request.id, // ID User
+                              request.id,
                               request.storeName ?? "Shop",
-                              true // Duyệt
+                              true
                             ),
                             icon: const Icon(Icons.check, color: Colors.white),
                             label: const Text("Duyệt Shop", style: TextStyle(color: Colors.white)),
@@ -174,7 +163,6 @@ class SellerRequestsCard extends StatelessWidget {
     });
   }
 
-  // Widget hiển thị dòng thông tin nhỏ
   Widget _infoRow(IconData icon, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +177,6 @@ class SellerRequestsCard extends StatelessWidget {
     );
   }
 
-  // Dialog xác nhận
   void _confirmAction(BuildContext context, AdminController controller, String userId, String shopName, bool isApprove) {
     Get.defaultDialog(
       title: isApprove ? "Duyệt Shop?" : "Từ chối Shop?",
@@ -201,8 +188,7 @@ class SellerRequestsCard extends StatelessWidget {
       confirmTextColor: Colors.white,
       buttonColor: isApprove ? Colors.green : Colors.red,
       onConfirm: () {
-        Get.back(); // Đóng dialog
-        // Gọi hàm xử lý trong Controller
+        Get.back();
         controller.approveOrRejectSeller(userId, isApprove);
       }
     );

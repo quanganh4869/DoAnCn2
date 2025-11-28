@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/main_screen.dart';
+import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/features/view/signup_screen.dart';
 import 'package:ecomerceapp/features/view/forgotpassword_screen.dart';
 import 'package:ecomerceapp/features/view/widgets/custom_textfield.dart';
@@ -101,7 +101,7 @@ class SigninScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => _handleSignin(context), // Gọi hàm xử lý đã sửa
+                  onPressed: () => _handleSignin(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),

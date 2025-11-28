@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/models/cart_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ecomerceapp/supabase/user_behavior_service.dart';
 import 'package:ecomerceapp/supabase/cart_supabase_services.dart';
 
 class CartController extends GetxController {
@@ -67,7 +69,7 @@ class CartController extends GetxController {
   }
 
   // ADD TO CART
-  Future<bool> addToCart({
+ Future<bool> addToCart({
     required Products product,
     int quantity = 1,
     String? selectedSize,
@@ -80,18 +82,22 @@ class CartController extends GetxController {
       if (userId == null) {
         Get.snackbar(
           "Authentication Required",
-          "Please sign in to add your cart",
+          "Please sign in to add to your cart",
           snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
         );
         return false;
       }
 
-      final stock = product.stock ?? 0;
+      final stock = product.stock; // Stock trong model Products là int (không null)
       if (stock < quantity) {
         Get.snackbar(
           "Insufficient Stock",
           "Only $stock items available",
           snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
         );
         return false;
       }
@@ -108,21 +114,31 @@ class CartController extends GetxController {
       if (success) {
         await loadCartItem();
         update();
+
         if (showNotification) {
           Get.snackbar(
             "Success",
             "Item added to cart",
             snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.green.withOpacity(0.1),
+            colorText: Colors.green,
           );
         }
+
+        // --- FIX LỖI TẠI ĐÂY ---
+        // Sai: UserBehaviorService.trackAction(widget.product.id, 'cart');
+        // Đúng: Sử dụng tham số 'product' được truyền vào hàm
+        UserBehaviorService.trackAction(product.id, 'cart');
       }
       return success;
     } catch (e) {
       print("Error adding to cart: $e");
       Get.snackbar(
         "Error",
-        "Failed to add your cart",
+        "Failed to add to cart",
         snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
       );
       return false;
     }

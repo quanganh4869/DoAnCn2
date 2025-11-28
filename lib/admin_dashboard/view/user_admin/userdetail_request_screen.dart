@@ -70,7 +70,6 @@ class UserDetailRequestScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // --- PHẦN 2: THÔNG TIN SHOP ĐĂNG KÝ ---
             _buildSectionTitle("Thông tin Shop đăng ký"),
             const SizedBox(height: 12),
             Container(
@@ -101,12 +100,11 @@ class UserDetailRequestScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 100), // Khoảng trống để không bị nút che
+            const SizedBox(height: 100),
           ],
         ),
       ),
 
-      // --- THANH NÚT DUYỆT/TỪ CHỐI ---
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

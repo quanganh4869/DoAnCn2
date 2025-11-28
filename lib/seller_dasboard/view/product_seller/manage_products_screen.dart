@@ -178,7 +178,7 @@ class ManageProductsScreen extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            "${format.format(product.price)} đ",
+                            "${format.format(product.price)} VND",
                             style: TextStyle(
                               color: Theme.of(context).primaryColor,
                               fontWeight: FontWeight.bold,
@@ -212,7 +212,7 @@ class ManageProductsScreen extends StatelessWidget {
                               const Icon(Icons.star, color: Colors.amber, size: 16),
                               const SizedBox(width: 4),
                               Text(
-                                ratingString, // "3,6"
+                                ratingString,
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                               const SizedBox(width: 4),
@@ -229,14 +229,10 @@ class ManageProductsScreen extends StatelessWidget {
                 ),
               ],
             ),
-
             const Divider(),
-
-            // 3. CÁC NÚT HÀNH ĐỘNG
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Nút Sửa
                 TextButton.icon(
                   onPressed: () {
                     Get.to(() => AddProductScreen(productToEdit: product));
@@ -245,7 +241,6 @@ class ManageProductsScreen extends StatelessWidget {
                   label: const Text("Sửa", style: TextStyle(color: Colors.blue)),
                 ),
 
-                // Nút Xem Đánh Giá
                 TextButton.icon(
                   onPressed: () {
                     _showReviewsBottomSheet(context, product, reviewController);
@@ -254,7 +249,6 @@ class ManageProductsScreen extends StatelessWidget {
                   label: const Text("Xem Đánh giá", style: TextStyle(color: Colors.orange)),
                 ),
 
-                // Nút Xóa
                 TextButton.icon(
                   onPressed: () => _confirmDelete(context, product.id, controller),
                   icon: const Icon(Icons.delete, color: Colors.red, size: 20),
@@ -268,7 +262,6 @@ class ManageProductsScreen extends StatelessWidget {
     );
   }
 
-  // Hàm hiện BottomSheet chứa danh sách đánh giá
   void _showReviewsBottomSheet(BuildContext context, Products product, ReviewController reviewController) {
     int? pid = int.tryParse(product.id);
     if (pid != null) {

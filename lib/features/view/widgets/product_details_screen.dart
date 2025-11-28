@@ -8,6 +8,7 @@ import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
 import 'package:ecomerceapp/controller/cart_controller.dart';
 import 'package:ecomerceapp/controller/review_controller.dart';
+import 'package:ecomerceapp/supabase/user_behavior_service.dart';
 import 'package:ecomerceapp/controller/wishlist_controller.dart';
 import 'package:ecomerceapp/features/view/widgets/size_selector.dart';
 import 'package:ecomerceapp/features/view/widgets/shop_detail_screen.dart';
@@ -52,6 +53,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         reviewController.fetchReviews(productId);
       }
     });
+    UserBehaviorService.trackAction(widget.product.id, 'view');
   }
 
   @override
