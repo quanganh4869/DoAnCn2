@@ -34,12 +34,10 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ---------- TOP BAR ----------
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    // Avatar
                     Obx(() {
                       final avatarUrl =
                           authController.userAvatar.value.isNotEmpty
@@ -52,7 +50,6 @@ class HomeScreen extends StatelessWidget {
                     }),
                     const SizedBox(width: 12),
 
-                    // Greeting
                     Expanded(
                       child: Obx(() {
                         final name = authController.userName.value.isNotEmpty
@@ -62,7 +59,7 @@ class HomeScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Hello $name",
+                              "Xin chào $name",
                               style: const TextStyle(
                                 color: Colors.grey,
                                 fontSize: 14,
@@ -71,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const Text(
-                              "Have a good day",
+                              "Chúc một ngày tốt lành",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -144,7 +141,6 @@ class HomeScreen extends StatelessWidget {
     return Stack(
       children: [
         IconButton(
-          // Navigate to NotificationScreen with 'user' filter
           onPressed: () => Get.to(() => NotificationScreen(filterRole: 'user')),
           icon: const Icon(Icons.notifications_outlined),
         ),

@@ -6,7 +6,7 @@ class AddressCard extends StatelessWidget {
   final Address address;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback? onSetDefault; // Callback mới
+  final VoidCallback? onSetDefault;
 
   const AddressCard({
     super.key,
@@ -38,7 +38,6 @@ class AddressCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Phần thông tin (Giữ nguyên)
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -114,11 +113,9 @@ class AddressCard extends StatelessWidget {
 
           Divider(height: 1, color: Colors.grey.shade200),
 
-          // Phần nút bấm hành động (Đã cập nhật thêm Set Default)
           IntrinsicHeight(
             child: Row(
               children: [
-                // Nút Edit
                 Expanded(
                   child: _buildActionButton(
                     context,
@@ -129,7 +126,6 @@ class AddressCard extends StatelessWidget {
                   ),
                 ),
 
-                // Nút Set Default (Chỉ hiện nếu chưa phải default)
                 if (!address.isDefault && onSetDefault != null) ...[
                   VerticalDivider(width: 1, color: Colors.grey.shade200),
                   Expanded(
@@ -142,10 +138,7 @@ class AddressCard extends StatelessWidget {
                     ),
                   ),
                 ],
-
                 VerticalDivider(width: 1, color: Colors.grey.shade200),
-
-                // Nút Delete
                 Expanded(
                   child: _buildActionButton(
                     context,

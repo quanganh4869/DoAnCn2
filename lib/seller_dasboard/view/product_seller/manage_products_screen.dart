@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:ecomerceapp/models/review.dart';
 import 'package:ecomerceapp/models/product.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ecomerceapp/controller/auth_controller.dart';
 import 'package:ecomerceapp/controller/review_controller.dart';
-import 'package:ecomerceapp/controller/product_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/controller/seller_controller.dart';
 import 'package:ecomerceapp/seller_dasboard/view/product_seller/add_product_screen.dart';
 

@@ -67,7 +67,7 @@ class CategoryChips extends StatelessWidget {
                   if (selected) {
                     categoryController.selectCategory(
                       categoryName,
-                    ); // categoryName là displayName
+                    );
                     final selectedCategory = categoryController
                         .getCategoryByName(categoryName);
                     productController.filterByCategory(

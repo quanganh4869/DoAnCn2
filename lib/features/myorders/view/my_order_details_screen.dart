@@ -18,7 +18,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Order Details"),
+        title: const Text("Chi tiết đơn hàng"),
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
@@ -30,17 +30,13 @@ class MyOrderDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Order Information Header
-            _buildSectionHeader("Order Information"),
+            _buildSectionHeader("Xác nhận đơn hàng"),
             const SizedBox(height: 10),
-            _buildInfoRow("Order ID", order.orderNumber),
-            _buildInfoRow("Date", dateStr),
-            _buildInfoRow("Status", order.statusString, isStatus: true),
-
+            _buildInfoRow("Id đơn hàng", order.orderNumber),
+            _buildInfoRow("Ngày", dateStr),
+            _buildInfoRow("Trạng thái", order.statusString, isStatus: true),
             const Divider(height: 30),
-
-            // 2. Shipping Address Section
-            _buildSectionHeader("Shipping Address"),
+            _buildSectionHeader("Địa chỉ "),
             const SizedBox(height: 10),
             if (order.shippingAddress != null)
               Container(
@@ -70,7 +66,6 @@ class MyOrderDetailsScreen extends StatelessWidget {
                       style: TextStyle(color: Colors.grey[600], height: 1.4),
                     ),
                     const SizedBox(height: 4),
-                    // Placeholder for phone if not in address model
                     Text(
                       "Phone: ${order.userId.substring(0, 4)}*** (User ID)",
                       style: TextStyle(color: Colors.grey[600])
@@ -81,7 +76,6 @@ class MyOrderDetailsScreen extends StatelessWidget {
             else
             const Text("No shipping info available"),
             const Divider(height: 30),
-            // 3. Product List Section
             _buildSectionHeader("Items (${order.itemCount})"),
             const SizedBox(height: 10),
             ListView.separated(
@@ -94,7 +88,6 @@ class MyOrderDetailsScreen extends StatelessWidget {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Item Image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
@@ -109,8 +102,6 @@ class MyOrderDetailsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-
-                    // Item Details
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

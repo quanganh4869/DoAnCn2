@@ -17,9 +17,8 @@ class NotificationScreen extends StatelessWidget {
     return controller.notifications.where((n) {
       final role = n.metadata?['role'];
       if (filterRole == 'seller') {
-        return role == 'seller'; // Only Seller notifications
+        return role == 'seller';
       } else {
-        // User mode: role='user' OR null (legacy notifications)
         return role == 'user' || role == null;
       }
     }).toList();
@@ -43,12 +42,11 @@ class NotificationScreen extends StatelessWidget {
           child: Obx(() {
             final isSelection = controller.isSelectionMode.value;
             final selectedCount = controller.selectedIds.length;
-
-            // Dynamic Title
-            String title = filterRole == 'seller' ? "Seller Notifications" : "Notifications";
+            String title = filterRole == 'seller'
+                ? "Seller Notifications"
+                : "Notifications";
             if (isSelection) title = "$selectedCount selected";
 
-            // Get current filtered list to check "Select All" state
             final currentList = _getFilteredList();
 
             return AppBar(
@@ -59,7 +57,10 @@ class NotificationScreen extends StatelessWidget {
                     )
                   : IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                     ),
               title: Text(
                 title,
@@ -72,46 +73,50 @@ class NotificationScreen extends StatelessWidget {
               centerTitle: true,
               actions: [
                 if (isSelection) ...[
-                  // Button: Select All
                   IconButton(
                     icon: Icon(
-                      selectedCount == currentList.length && currentList.isNotEmpty
+                      selectedCount == currentList.length &&
+                              currentList.isNotEmpty
                           ? Icons.select_all
                           : Icons.deselect,
                       color: Theme.of(context).primaryColor,
                     ),
-                    tooltip: "Select All",
+                    tooltip: "Chọn tất cả",
                     onPressed: () {
                       controller.toggleSelectAll(currentList);
                     },
                   ),
-                  // Button: Delete Selected
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () => _showDeleteConfirmDialog(context, isDeleteAll: false),
+                    onPressed: () =>
+                        _showDeleteConfirmDialog(context, isDeleteAll: false),
                   ),
                 ] else ...[
-                  // Normal Mode Actions
                   TextButton(
                     onPressed: () => controller.markAllAsRead(),
                     child: Text(
-                      "Mark read",
-                      style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+                      "Đánh dấu đã đọc",
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  // Button: Delete All (Filtered)
                   IconButton(
-                    icon: Icon(Icons.delete_sweep_outlined, color: Colors.red[400]),
-                    tooltip: "Delete All",
-                    onPressed: () => _showDeleteConfirmDialog(context, isDeleteAll: true),
+                    icon: Icon(
+                      Icons.delete_sweep_outlined,
+                      color: Colors.red[400],
+                    ),
+                    tooltip: "Xóa tất cả",
+                    onPressed: () =>
+                        _showDeleteConfirmDialog(context, isDeleteAll: true),
                   ),
-                ]
+                ],
               ],
             );
           }),
         ),
         body: Obx(() {
-          // Get Filtered List
           final filteredList = _getFilteredList();
 
           if (filteredList.isEmpty) {
@@ -119,9 +124,16 @@ class NotificationScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey[400]),
+                  Icon(
+                    Icons.notifications_off_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                   const SizedBox(height: 16),
-                  const Text("No notifications", style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    "Không có thông báo",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );
@@ -144,7 +156,9 @@ class NotificationScreen extends StatelessWidget {
                   controller.deleteNotification(notification.id);
                 },
                 background: _buildSwipeBackground(Alignment.centerLeft),
-                secondaryBackground: _buildSwipeBackground(Alignment.centerRight),
+                secondaryBackground: _buildSwipeBackground(
+                  Alignment.centerRight,
+                ),
                 child: _buildNotificationCard(context, notification),
               );
             },
@@ -167,8 +181,10 @@ class NotificationScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmDialog(BuildContext context, {required bool isDeleteAll}) {
-    // Count based on filtered list if deleting all
+  void _showDeleteConfirmDialog(
+    BuildContext context, {
+    required bool isDeleteAll,
+  }) {
     final count = isDeleteAll
         ? _getFilteredList().length
         : controller.selectedIds.length;
@@ -177,10 +193,12 @@ class NotificationScreen extends StatelessWidget {
 
     Get.dialog(
       AlertDialog(
-        title: Text(isDeleteAll ? "Clear Inbox?" : "Delete $count items?"),
-        content: Text(isDeleteAll
-            ? "Are you sure you want to delete all notifications in this view?"
-            : "Are you sure you want to delete the selected notifications?"),
+        title: Text(isDeleteAll ? "Xóa thông báo ?" : "Xóa $count ?"),
+        content: Text(
+          isDeleteAll
+              ? "Bạn có chắc xóa tất cả thông báo"
+              : "Bạn có chắc xóa thông báo đã chọn?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
@@ -190,20 +208,25 @@ class NotificationScreen extends StatelessWidget {
             onPressed: () {
               Get.back();
               if (isDeleteAll) {
-                // --- FIX: Pass filterRole to delete only visible items ---
                 controller.deleteAllNotifications(filterRole);
               } else {
                 controller.deleteSelectedNotifications();
               }
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationCard(BuildContext context, NotificationItem notification) {
+  Widget _buildNotificationCard(
+    BuildContext context,
+    NotificationItem notification,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() {
@@ -230,18 +253,24 @@ class NotificationScreen extends StatelessWidget {
             color: isSelected
                 ? Theme.of(context).primaryColor.withOpacity(0.15)
                 : (notification.isRead
-                    ? Theme.of(context).cardColor
-                    : Theme.of(context).primaryColor.withOpacity(0.05)),
+                      ? Theme.of(context).cardColor
+                      : Theme.of(context).primaryColor.withOpacity(0.05)),
             borderRadius: BorderRadius.circular(16),
             border: isSelected
                 ? Border.all(color: Theme.of(context).primaryColor, width: 1.5)
                 : (!notification.isRead
-                    ? Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3))
-                    : null),
+                      ? Border.all(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.3),
+                        )
+                      : null),
             boxShadow: [
               if (!isSelected)
                 BoxShadow(
-                  color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+                  color: isDark
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.grey.withOpacity(0.1),
                   blurRadius: 4.0,
                   offset: const Offset(0, 2),
                 ),
@@ -256,7 +285,8 @@ class NotificationScreen extends StatelessWidget {
                     ? Checkbox(
                         value: isSelected,
                         activeColor: Theme.of(context).primaryColor,
-                        onChanged: (val) => controller.toggleItemSelection(notification.id),
+                        onChanged: (val) =>
+                            controller.toggleItemSelection(notification.id),
                       )
                     : null,
               ),
@@ -267,12 +297,18 @@ class NotificationScreen extends StatelessWidget {
                     margin: const EdgeInsets.only(left: 16),
                     padding: const EdgeInsets.all(8.0),
                     decoration: BoxDecoration(
-                      color: NotificationUtils.getIconBackgroundColor(context, notification.type),
+                      color: NotificationUtils.getIconBackgroundColor(
+                        context,
+                        notification.type,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       NotificationUtils.getNotificationIcon(notification.type),
-                      color: NotificationUtils.getIconColor(context, notification.type),
+                      color: NotificationUtils.getIconColor(
+                        context,
+                        notification.type,
+                      ),
                       size: 20,
                     ),
                   ),
@@ -280,7 +316,9 @@ class NotificationScreen extends StatelessWidget {
                     notification.title,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                      fontWeight: notification.isRead
+                          ? FontWeight.normal
+                          : FontWeight.bold,
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
@@ -300,7 +338,10 @@ class NotificationScreen extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         "${notification.date.hour}:${notification.date.minute.toString().padLeft(2, '0')} ${notification.date.day}/${notification.date.month}",
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),

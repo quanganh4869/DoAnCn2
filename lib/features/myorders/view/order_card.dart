@@ -1,13 +1,13 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_utils/get_utils.dart';
 import 'package:ecomerceapp/utils/app_textstyles.dart';
-import 'package:intl/intl.dart'; // Import Intl for NumberFormat
 import 'package:ecomerceapp/features/myorders/model/order.dart';
 
 class OrderCard extends StatelessWidget {
   final Order order;
   final VoidCallback onViewDetails;
-  final VoidCallback? onDelete; // Nullable callback for delete action
+  final VoidCallback? onDelete;
 
   const OrderCard({
     super.key,
@@ -19,11 +19,7 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Currency Formatter
     final priceFormatter = NumberFormat("#,###", "vi_VN");
-
-    // Image handling with fallback
     final ImageProvider imageProvider = (order.imageUrl.isNotEmpty)
         ? NetworkImage(order.imageUrl)
         : const AssetImage('assets/images/placeholder.png') as ImageProvider;
@@ -45,23 +41,25 @@ class OrderCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // --- HEADER: Order ID + Delete Button ---
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Order #${order.orderNumber}",
+                  "Đơn hàng : #${order.orderNumber}",
                   style: AppTextStyles.withColor(
                     AppTextStyles.h3,
                     Theme.of(context).textTheme.bodyLarge!.color!,
                   ),
                 ),
-                // Only show delete icon if the callback is provided (based on status in parent)
                 if (onDelete != null)
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     onPressed: onDelete,
                     tooltip: "Cancel/Delete Order",
                   ),
@@ -69,12 +67,10 @@ class OrderCard extends StatelessWidget {
             ),
           ),
 
-          // --- BODY: Image & Details ---
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
             child: Row(
               children: [
-                // Product Image
                 Container(
                   width: 80,
                   height: 80,
@@ -89,27 +85,25 @@ class OrderCard extends StatelessWidget {
                         : null,
                   ),
                   child: order.imageUrl.isEmpty
-                      ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                      ? const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                        )
                       : null,
                 ),
-
                 const SizedBox(width: 16.0),
-
-                // Details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Item Count & Total Price (Formatted)
                       Text(
-                        "${order.itemCount} items - ${priceFormatter.format(order.totalAmount)} VND",
+                        "Số lượng: ${order.itemCount} - ${priceFormatter.format(order.totalAmount)} VND",
                         style: AppTextStyles.withColor(
                           AppTextStyles.bodyMedium,
                           isDark ? Colors.grey[400]! : Colors.grey[600]!,
                         ),
                       ),
                       const SizedBox(height: 8.0),
-                      // Colored Status Chip
                       _buildStatusChip(context, order.status),
                     ],
                   ),
@@ -119,8 +113,6 @@ class OrderCard extends StatelessWidget {
           ),
 
           Divider(height: 1, color: Colors.grey.shade200),
-
-          // --- FOOTER: View Details Button ---
           InkWell(
             onTap: onViewDetails,
             borderRadius: const BorderRadius.only(
@@ -131,7 +123,7 @@ class OrderCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Center(
                 child: Text(
-                  "View Details",
+                  "Xem chi tiết",
                   style: AppTextStyles.withColor(
                     AppTextStyles.bodyMedium,
                     Theme.of(context).primaryColor,
@@ -139,7 +131,7 @@ class OrderCard extends StatelessWidget {
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -183,11 +175,8 @@ class OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.0),
       ),
       child: Text(
-        text.capitalize!, // Requires GetUtils
-        style: AppTextStyles.withColor(
-          AppTextStyles.bodySmall,
-          color,
-        ),
+        text.capitalize!,
+        style: AppTextStyles.withColor(AppTextStyles.bodySmall, color),
       ),
     );
   }

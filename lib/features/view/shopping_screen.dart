@@ -19,7 +19,7 @@ final isDark = Theme.of(context).brightness == Brightness.dark;
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          "Shopping",
+          "Tất cả sản phẩm",
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black,

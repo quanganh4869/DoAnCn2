@@ -30,11 +30,10 @@ class PaymentMethodCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white, // Logo thẻ thường nền trắng
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.withOpacity(0.2)),
                 ),
-                // Sử dụng errorBuilder để tránh lỗi nếu chưa có ảnh asset
                 child: Image.asset(
                   "assets/images/MasterCard.png",
                   height: 24,

@@ -7,22 +7,15 @@ import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_sc
 
 class CheckoutAddressCard extends StatelessWidget {
   CheckoutAddressCard({super.key});
-
-  // Tìm AddressController đã được put từ trước
   final AddressController controller = Get.find<AddressController>();
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Obx(() {
-      // LOGIC: Lấy địa chỉ mặc định, nếu không có thì lấy cái đầu tiên, nếu list rỗng thì null
       Address? displayAddress;
       if (controller.addresses.isNotEmpty) {
         displayAddress = controller.addresses.firstWhereOrNull((e) => e.isDefault) ?? controller.addresses.first;
       }
-
-      // Nếu chưa có địa chỉ nào
       if (displayAddress == null) {
         return InkWell(
           onTap: () => Get.to(() => ShippingAddressScreen()),
@@ -36,7 +29,7 @@ class CheckoutAddressCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                "+ Add Shipping Address",
+                "Thêm địa chỉ",
                 style: AppTextStyles.withColor(
                   AppTextStyles.h3,
                   isDark ? Colors.white : Colors.black,
@@ -47,7 +40,6 @@ class CheckoutAddressCard extends StatelessWidget {
         );
       }
 
-      // Nếu đã có địa chỉ
       return InkWell(
         onTap: () => Get.to(() => ShippingAddressScreen()),
         borderRadius: BorderRadius.circular(16),
@@ -81,7 +73,7 @@ class CheckoutAddressCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          displayAddress.label, // Ví dụ: Home, Office
+                          displayAddress.label,
                           style: AppTextStyles.withColor(
                             AppTextStyles.h3,
                             Theme.of(context).textTheme.bodyLarge!.color!,

@@ -17,7 +17,7 @@ class ShippingAddressScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Shipping Address",
+          "Địa chỉ ship",
           style: AppTextStyles.h3.copyWith(
              color: isDark ? Colors.white : Colors.black
           )

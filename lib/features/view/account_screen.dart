@@ -15,7 +15,6 @@ import 'package:ecomerceapp/features/shippingaddress/widgets/shipping_address_sc
 class AccountScreen extends StatelessWidget {
   AccountScreen({super.key});
 
-  // Khởi tạo Controller
   final SellerController sellerController = Get.put(SellerController());
   final AuthController authController = Get.find<AuthController>();
 
@@ -26,9 +25,9 @@ class AccountScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Account Settings",
+          "Cài đặt người dùng",
           style: AppTextStyles.withColor(
-            AppTextStyles.h3,
+            AppTextStyles.bodyLarge,
             isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -91,7 +90,6 @@ class AccountScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Tên hiển thị đã xử lý logic ở trên
             Text(
               displayName,
               textAlign: TextAlign.center,
@@ -149,13 +147,11 @@ class AccountScreen extends StatelessWidget {
             () => Get.to(() => ShippingAddressScreen()),
           ),
 
-          // --- LOGIC MENU NGƯỜI BÁN ---
           Obx(() {
             final user = authController.userProfile;
             final status = user?.sellerStatus ?? 'none';
 
             switch (status) {
-              // TRƯỜNG HỢP 1: Đã là Seller (Duyệt thành công)
               case 'active':
               case 'approved':
                 return _buildCustomMenuItem(
@@ -169,7 +165,6 @@ class AccountScreen extends StatelessWidget {
                   textColor: Colors.green,
                 );
 
-              // TRƯỜNG HỢP 2: Đang chờ duyệt
               case 'pending':
                 return _buildCustomMenuItem(
                   context,
@@ -184,7 +179,6 @@ class AccountScreen extends StatelessWidget {
                   textColor: Colors.orange,
                 );
 
-              // TRƯỜNG HỢP 3: Chưa đăng ký HOẶC Bị từ chối (Hiện lại nút đăng ký)
               case 'none':
               case 'rejected':
               default:
@@ -193,7 +187,6 @@ class AccountScreen extends StatelessWidget {
                   Icons.storefront,
                   "Register as Seller",
                   () {
-                     // Nếu bị từ chối thì hiện thông báo nhỏ nhắc nhở
                      if (status == 'rejected') {
                         Get.snackbar(
                           "Thông báo",

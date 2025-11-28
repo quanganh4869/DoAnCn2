@@ -23,7 +23,7 @@ class MyOrderScreen extends StatelessWidget {
             icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
           ),
           title: Text(
-            "My Orders",
+            "Đơn hàng của tôi",
             style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)
           ),
           centerTitle: true,
@@ -32,9 +32,9 @@ class MyOrderScreen extends StatelessWidget {
             unselectedLabelColor: Colors.grey,
             indicatorColor: Theme.of(context).primaryColor,
             tabs: const [
-              Tab(text: "Active"),
-              Tab(text: "Completed"),
-              Tab(text: "Cancelled"),
+              Tab(text: "Đang tiến hành"),
+              Tab(text: "Hoàn thành"),
+              Tab(text: "Đã hủy"),
             ],
           ),
         ),
@@ -43,7 +43,6 @@ class MyOrderScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Filter orders for each tab
           final activeList = controller.allOrders.where((o) =>
             o.status != OrderStatus.completed &&
             o.status != OrderStatus.cancelled
@@ -105,7 +104,6 @@ class MyOrderScreen extends StatelessWidget {
 
           return OrderCard(
             order: order,
-            // Chỉ truyền callback onDelete nếu đủ điều kiện
             onDelete: canDelete ? () => _showDeleteConfirmDialog(context, order) : null,
             onViewDetails: () {
               Get.to(() => MyOrderDetailsScreen(order: order));

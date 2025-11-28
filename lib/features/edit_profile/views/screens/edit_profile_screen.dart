@@ -22,7 +22,7 @@ class EditProfileScreen extends StatelessWidget {
           ),
         ),
         title: Text(
-          'Shipping Address',
+          'Thông tin cá nhân',
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,

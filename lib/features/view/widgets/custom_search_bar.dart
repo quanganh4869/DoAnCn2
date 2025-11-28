@@ -12,22 +12,19 @@ class CustomSearchBar extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      // Sử dụng GestureDetector để bắt sự kiện nhấn vào toàn bộ TextField
       child: GestureDetector(
         onTap: () {
-          // Khi nhấn, chuyển đến màn hình SearchResultScreen
           Get.to(() => SearchResultScreen());
         },
         child: AbsorbPointer(
-          // Sử dụng AbsorbPointer để ngăn TextField nhận input trực tiếp
-          absorbing: true, 
+          absorbing: true,
           child: TextField(
             style: AppTextStyles.withColor(
               AppTextStyles.buttonMedium,
               Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
             ),
             decoration: InputDecoration(
-              hintText: "Search",
+              hintText: "Tìm kiém",
               hintStyle: AppTextStyles.withColor(
                 AppTextStyles.buttonMedium,
                 isDark ? Colors.grey[400]! : Colors.grey[600]!,

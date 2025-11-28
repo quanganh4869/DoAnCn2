@@ -23,9 +23,9 @@ class AllProductsScreen extends StatelessWidget {
           ),
         ),
         title: Text(
-          "All Products",
+          "Tất cả sản phẩm",
           style: AppTextStyles.withColor(
-            AppTextStyles.h3,
+            AppTextStyles.bodyLarge,
             isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -34,14 +34,14 @@ class AllProductsScreen extends StatelessWidget {
             onPressed: (){},
            icon: Icon(
             Icons.search,
-            color: isDark ? Colors.white : Colors.black, 
+            color: isDark ? Colors.white : Colors.black,
            )
            ),
            IconButton(
             onPressed: () => FillterBottomSheet.show(context),
            icon: Icon(
             Icons.filter_list,
-            color: isDark ? Colors.white : Colors.black, 
+            color: isDark ? Colors.white : Colors.black,
            )
            )
         ],

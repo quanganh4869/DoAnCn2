@@ -42,7 +42,6 @@ class NotificationDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HEADER
             Row(
               children: [
                 Container(
@@ -89,7 +88,6 @@ class NotificationDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // TITLE
             Text(
               notification.title,
               style: AppTextStyles.withColor(
@@ -127,7 +125,6 @@ class NotificationDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // PRODUCT LIST
             if (items.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 12),

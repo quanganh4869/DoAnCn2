@@ -38,7 +38,7 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ),
         title: Text(
-          "My Cart",
+          "Giỏ hàng của tôi",
           style: AppTextStyles.withColor(
             AppTextStyles.h3,
             isDark ? Colors.white : Colors.black,
@@ -49,12 +49,9 @@ class _CartScreenState extends State<CartScreen> {
         elevation: 0,
       ),
       body: Obx(() {
-        // 1. Trạng thái Loading
         if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        // 2. Trạng thái Giỏ hàng rỗng
         if (controller.cartItems.isEmpty) {
           return Center(
             child: Column(
@@ -67,7 +64,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Your cart is empty',
+                  'Chưa có sản phẩm nào trong giỏ hàng',
                   style: AppTextStyles.withColor(
                     AppTextStyles.h3,
                     isDark ? Colors.white : Colors.black,
@@ -78,10 +75,8 @@ class _CartScreenState extends State<CartScreen> {
           );
         }
 
-        // 3. Hiển thị danh sách và tổng tiền
         return Column(
           children: [
-            // Danh sách sản phẩm (Scrollable)
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.all(16.0),
@@ -93,7 +88,6 @@ class _CartScreenState extends State<CartScreen> {
                 },
               ),
             ),
-            // Phần tổng tiền cố định ở dưới
             _buildCartSummary(context),
           ],
         );
@@ -101,7 +95,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // --- WIDGET: CART ITEM ---
   Widget _buildCartItem(BuildContext context, CartItem item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
@@ -177,7 +170,6 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
 
-                // Size (nếu có)
                 if (item.selectedSize != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -192,12 +184,9 @@ class _CartScreenState extends State<CartScreen> {
 
                 const SizedBox(height: 4),
 
-                // --- HÀNG 2: Giá tiền và Tăng/Giảm số lượng ---
-                // ĐÂY LÀ CHỖ ĐÃ SỬA LỖI TRÀN MÀN HÌNH
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Cột giá tiền (Bọc trong Expanded để không đẩy nút số lượng)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,28 +195,25 @@ class _CartScreenState extends State<CartScreen> {
                             "${priceFormatter.format(product.price)} VND",
                             style: AppTextStyles.withColor(
                               AppTextStyles
-                                  .h3, // Giảm size chữ xuống h3 hoặc giữ h2 tùy ý, nhưng h3 an toàn hơn
+                                  .h3,
                               Theme.of(
                                 context,
                               ).textTheme.headlineMedium!.color!,
                             ).copyWith(fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow:
-                                TextOverflow.ellipsis, // Cắt bớt nếu quá dài
+                                TextOverflow.ellipsis,
                           ),
-
-                          // Giá cũ (nếu có)
                           if (product.oldPrice != null &&
                               product.oldPrice! > product.price)
                             Wrap(
-                              // Dùng Wrap thay vì Row để tự xuống dòng nếu giá cũ quá dài
                               crossAxisAlignment: WrapCrossAlignment.center,
                               spacing: 4,
                               children: [
                                 Text(
                                   "${priceFormatter.format(product.oldPrice)} VND",
                                   style: TextStyle(
-                                    fontSize: 11, // Giảm size chữ giá cũ
+                                    fontSize: 11,
                                     decoration: TextDecoration.lineThrough,
                                     color: isDark
                                         ? Colors.grey[400]
@@ -257,13 +243,9 @@ class _CartScreenState extends State<CartScreen> {
                         ],
                       ),
                     ),
-
-                    // Khoảng cách nhỏ giữa giá và nút
                     const SizedBox(width: 8),
-
-                    // Bộ tăng giảm số lượng (Giữ nguyên kích thước cố định)
                     Container(
-                      height: 30, // Giảm chiều cao một chút cho gọn
+                      height: 30,
                       decoration: BoxDecoration(
                         color: isDark ? Colors.grey[800] : Colors.grey[200],
                         borderRadius: BorderRadius.circular(8),
@@ -316,7 +298,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // --- WIDGET: CART SUMMARY ---
   Widget _buildCartSummary(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final priceFormatter = NumberFormat("#,###", "vi_VN");
@@ -338,13 +319,12 @@ class _CartScreenState extends State<CartScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Dòng tổng cộng
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Obx(
                   () => Text(
-                    'Total (${controller.itemCount.value} items):',
+                    'Tổng cộng (${controller.itemCount.value} sản phẩm):',
                     style: AppTextStyles.withColor(
                       AppTextStyles.bodyLarge,
                       isDark ? Colors.grey[300]! : Colors.grey[700]!,
@@ -353,7 +333,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 Obx(
                   () => Text(
-                    '${priceFormatter.format(controller.total.value)} đ',
+                    '${priceFormatter.format(controller.total.value)} VND',
                     style: AppTextStyles.withColor(
                       AppTextStyles.h2,
                       isDark ? Colors.white : Colors.black,
@@ -363,11 +343,8 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Hàng nút bấm
             Row(
               children: [
-                // Nút Xóa hết (Clear All)
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _showClearCartConfirmationDialog(context),
@@ -380,7 +357,7 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
                     child: const Text(
-                      'Clear All',
+                      'Xóa hết giỏ hàng này',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -390,7 +367,6 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(width: 16),
 
-                // Nút Checkout
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => Get.to(() => CheckoutScreen()),
@@ -403,7 +379,7 @@ class _CartScreenState extends State<CartScreen> {
                       elevation: 0,
                     ),
                     child: Text(
-                      'Checkout',
+                      'Thanh toán',
                       style: AppTextStyles.withColor(
                         AppTextStyles.buttonMedium,
                         Colors.white,
@@ -419,22 +395,21 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  // --- DIALOGS ---
   void _showClearCartConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Clear Cart'),
-          content: const Text('Are you sure you want to remove all items?'),
+          title: const Text('Xóa giỏ hàng'),
+          content: const Text('Bạn có muốn xóa tất cả sản phẩm giỏ hàng này?'),
           actions: [
             TextButton(
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
               child: const Text(
-                'Clear All',
+                'Xóa ',
                 style: TextStyle(color: Colors.red),
               ),
               onPressed: () {
@@ -453,15 +428,15 @@ class _CartScreenState extends State<CartScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Remove Item'),
-          content: const Text('Are you sure you want to remove this item?'),
+          title: const Text('Xóa sản phẩm'),
+          content: const Text('Bạn có chắc muốn xóa sản phẩm này'),
           actions: [
             TextButton(
-              child: const Text('Cancel'),
+              child: const Text('Hủy'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+              child: const Text('Xóa', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 controller.removeItem(item);
                 Navigator.of(context).pop();

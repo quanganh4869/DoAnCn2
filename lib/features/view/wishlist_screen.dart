@@ -27,7 +27,7 @@ class WishlistScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "My Wishlist",
+          "Danh sách yêu thích của tôi",
           style: TextStyle(
             color: Colors.black,
             fontSize: 25,
@@ -58,10 +58,7 @@ class WishlistScreen extends StatelessWidget {
 
           return Column(
             children: [
-              // 1. ĐƯA SUMMARY LÊN ĐẦU
               _buildSummary(context, controller),
-
-              // 2. DANH SÁCH SẢN PHẨM Ở DƯỚI
               Expanded(
                 child: CustomScrollView(
                   slivers: [
@@ -85,7 +82,6 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  // ... (Giữ nguyên _buildError và _buildEmpty) ...
   Widget _buildError(WishlistController controller) {
     return Center(
       child: Column(
@@ -113,7 +109,7 @@ class WishlistScreen extends StatelessWidget {
           Icon(Icons.favorite_border, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            "Your wishlist is empty",
+            "Danh sách yêu thích trống",
             style: TextStyle(
                 fontSize: 18, color: isDark ? Colors.white70 : Colors.black54),
           ),
@@ -122,7 +118,6 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  // --- ĐÃ SỬA GIAO DIỆN CHO PHÙ HỢP VỊ TRÍ TRÊN CÙNG ---
   Widget _buildSummary(BuildContext context, WishlistController controller) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -133,15 +128,14 @@ class WishlistScreen extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, 4), // Đổ bóng xuống dưới
+            offset: const Offset(0, 4),
             blurRadius: 10,
           )
         ],
-        // Bo góc dưới thay vì bo góc trên
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
       child: SafeArea(
-        bottom: false, // Không cần safe area bottom vì ở trên cùng
+        bottom: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -150,12 +144,12 @@ class WishlistScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Total Items",
+                  "Số lượng: ",
                   style: AppTextStyles.withColor(
                       AppTextStyles.bodySmall, Colors.grey),
                 ),
                 Text(
-                  "${controller.itemCount} items",
+                  "${controller.itemCount} sản phẩm",
                   style: AppTextStyles.withColor(
                     AppTextStyles.h2,
                     isDark ? Colors.white : Colors.black,
@@ -187,7 +181,7 @@ class WishlistScreen extends StatelessWidget {
                       ),
                     )
                   : Text(
-                      "Add All to Cart",
+                      "Thêm tất cả vào giỏ hàng",
                       style: AppTextStyles.withColor(
                           AppTextStyles.buttonMedium, Colors.white),
                     ),
@@ -198,7 +192,6 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  // ... (Giữ nguyên _buildItem và _safe) ...
   Widget _buildItem(
       BuildContext context, Products product, WishlistController controller) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -280,7 +273,7 @@ class WishlistScreen extends StatelessWidget {
                                   ? Theme.of(context).primaryColor
                                   : Colors.grey,
                             ),
-                            tooltip: "Add to Cart",
+                            tooltip: "Thêm vào giỏ hàng",
                           ),
                           IconButton(
                             onPressed: () async {
@@ -290,7 +283,7 @@ class WishlistScreen extends StatelessWidget {
                               Icons.delete_outline,
                               color: Colors.red[400],
                             ),
-                            tooltip: "Remove",
+                            tooltip: "Xóa",
                           ),
                         ],
                       )

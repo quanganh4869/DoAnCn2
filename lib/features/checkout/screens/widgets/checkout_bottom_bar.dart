@@ -16,7 +16,6 @@ class CheckoutBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Định dạng tiền tệ: 100.000
     final priceFormatter = NumberFormat("#,###", "vi_VN");
 
     return Container(
@@ -47,7 +46,7 @@ class CheckoutBottomBar extends StatelessWidget {
               elevation: 0,
             ),
             child: Text(
-              "Place Order (${priceFormatter.format(totalAmount)} VND)",
+              "Xác nhận đơn hàng (${priceFormatter.format(totalAmount)} VND)",
               style: AppTextStyles.withColor(
                 AppTextStyles.h3,
                 Colors.white,

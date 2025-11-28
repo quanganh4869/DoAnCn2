@@ -6,20 +6,16 @@ import 'package:ecomerceapp/controller/review_controller.dart';
 
 class ProductReview extends StatefulWidget {
   final int productId;
-
   const ProductReview({super.key, required this.productId});
-
   @override
   State<ProductReview> createState() => _ProductReviewState();
 }
-
 class _ProductReviewState extends State<ProductReview> {
   final ReviewController controller = Get.put(ReviewController());
 
   @override
   void initState() {
     super.initState();
-    // Gọi API lấy review khi widget được build
     controller.fetchReviews(widget.productId);
   }
 
@@ -28,14 +24,18 @@ class _ProductReviewState extends State<ProductReview> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- Header: Tiêu đề & Nút Thêm ---
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Obx(() => Text(
-              "Reviews (${controller.reviews.length})",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            )),
+            Obx(
+              () => Text(
+                "Số lượt đánh giá (${controller.reviews.length})",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             TextButton.icon(
               onPressed: () => _showAddReviewDialog(context),
               icon: const Icon(Icons.rate_review_outlined, size: 18),
@@ -44,33 +44,32 @@ class _ProductReviewState extends State<ProductReview> {
           ],
         ),
 
-        // --- Summary: Điểm trung bình ---
         Obx(() {
-           if (controller.reviews.isEmpty) return const SizedBox.shrink();
-           return Row(
-             children: [
-               Text(
-                 controller.averageRating.value.toStringAsFixed(1),
-                 style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-               ),
-               const SizedBox(width: 8),
-               Column(
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-                   _buildStarRating(controller.averageRating.value, size: 16),
-                   Text(
-                     "Based on ${controller.reviews.length} reviews",
-                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                   ),
-                 ],
-               )
-             ],
-           );
+          if (controller.reviews.isEmpty) return const SizedBox.shrink();
+          return Row(
+            children: [
+              Text(
+                controller.averageRating.value.toStringAsFixed(1),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStarRating(controller.averageRating.value, size: 16),
+                  Text(
+                    "Based on ${controller.reviews.length} đánh giá",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          );
         }),
-
         const SizedBox(height: 16),
-
-        // --- List Reviews ---
         Obx(() {
           if (controller.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
@@ -89,8 +88,9 @@ class _ProductReviewState extends State<ProductReview> {
           }
 
           return ListView.separated(
-            shrinkWrap: true, // Quan trọng để nằm trong Column
-            physics: const NeverScrollableScrollPhysics(), // Disable scroll riêng
+            shrinkWrap: true,
+            physics:
+                const NeverScrollableScrollPhysics(),
             itemCount: controller.reviews.length,
             separatorBuilder: (_, __) => const Divider(height: 24),
             itemBuilder: (context, index) {
@@ -109,7 +109,6 @@ class _ProductReviewState extends State<ProductReview> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Avatar
         CircleAvatar(
           radius: 20,
           backgroundImage: review.userAvatar.isNotEmpty
@@ -121,7 +120,6 @@ class _ProductReviewState extends State<ProductReview> {
         ),
         const SizedBox(width: 12),
 
-        // Content
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +129,10 @@ class _ProductReviewState extends State<ProductReview> {
                 children: [
                   Text(
                     review.userName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                   Text(
                     dateStr,
@@ -153,7 +154,6 @@ class _ProductReviewState extends State<ProductReview> {
     );
   }
 
-  // Widget hiển thị sao (Star)
   Widget _buildStarRating(double rating, {double size = 20}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -167,10 +167,8 @@ class _ProductReviewState extends State<ProductReview> {
     );
   }
 
-  // Dialog thêm đánh giá
   void _showAddReviewDialog(BuildContext context) {
     final commentController = TextEditingController();
-    // Dùng ValueNotifier để update sao khi bấm
     final selectedRating = ValueNotifier<int>(5);
 
     showDialog(
@@ -182,7 +180,6 @@ class _ProductReviewState extends State<ProductReview> {
           children: [
             const Text("Bạn cảm thấy sản phẩm thế nào?"),
             const SizedBox(height: 16),
-            // Star Selector
             ValueListenableBuilder<int>(
               valueListenable: selectedRating,
               builder: (context, value, child) {
